@@ -1,3 +1,10 @@
+## [1.0.4](https://github.com/Apoorv2/blugoat/compare/v1.0.3...v1.0.4) (2025-03-21)
+
+
+### Bug Fixes
+
+* middleware reverted ([b0a0c95](https://github.com/Apoorv2/blugoat/commit/b0a0c95240ddd0824f8e04eb81b522c6f96bb457))
+
 ## [1.0.3](https://github.com/Apoorv2/blugoat/compare/v1.0.2...v1.0.3) (2025-03-21)
 
 
