@@ -1,7 +1,7 @@
 {
   "Index": {
-    "meta_title": "SaaS Template - Le template SaaS parfait pour construire et mettre à l'échelle votre entreprise en toute simplicité.",
-    "meta_description": "Un template gratuit et open-source de landing page pour votre entreprise SaaS, construit avec React, TypeScript, Shadcn UI et Tailwind CSS."
+    "meta_title": "bluGoat - AI-Powered Lead Generation Platform to Find Your Perfect Prospects",
+    "meta_description": "bluGoat helps businesses discover qualified leads with precision targeting and AI-enriched data. Specify your criteria and access actionable business intelligence instantly."
   },
   "Navbar": {
     "sign_in": "Se connecter",
@@ -94,8 +94,8 @@
     "settings": "Réglages"
   },
   "Dashboard": {
-    "meta_title": "Tableau de bord du SaaS Template",
-    "meta_description": "Un template gratuit et open-source de landing page pour votre entreprise SaaS, construit avec Next.js, TypeScript, Shadcn UI et Tailwind CSS."
+    "meta_title": "bluGoat - AI-Powered Lead Generation Platform to Find Your Perfect Prospects",
+    "meta_description": "bluGoat helps businesses discover qualified leads with precision targeting and AI-enriched data. Specify your criteria and access actionable business intelligence instantly."
   },
   "DashboardIndex": {
     "title_bar": "Tableau de bord",

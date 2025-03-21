@@ -10,8 +10,8 @@ export const Features = () => {
   return (
     <Background>
       <Section
-        subtitle={t('section_subtitle')}
-        title={t('section_title')}
+        title={t('section_subtitle')}
+        subtitle={t('section_title')}
         description={t('section_description')}
       >
         <div className="grid grid-cols-1 gap-x-3 gap-y-8 md:grid-cols-3">
@@ -31,7 +31,7 @@ export const Features = () => {
             )}
             title={t('feature1_title')}
           >
-            {t('feature_description')}
+            {t('feature1_description')}
           </FeatureCard>
 
           <FeatureCard
@@ -50,7 +50,7 @@ export const Features = () => {
             )}
             title={t('feature2_title')}
           >
-            {t('feature_description')}
+            {t('feature2_description')}
           </FeatureCard>
 
           <FeatureCard
@@ -69,7 +69,7 @@ export const Features = () => {
             )}
             title={t('feature3_title')}
           >
-            {t('feature_description')}
+            {t('feature3_description')}
           </FeatureCard>
 
           <FeatureCard
@@ -82,13 +82,13 @@ export const Features = () => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M0 0h24v24H0z" stroke="none" />
-                <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5" />
+                {/* Filter/Funnel icon */}
+                <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
               </svg>
             )}
             title={t('feature4_title')}
           >
-            {t('feature_description')}
+            {t('feature4_description')}
           </FeatureCard>
 
           <FeatureCard
@@ -107,7 +107,7 @@ export const Features = () => {
             )}
             title={t('feature5_title')}
           >
-            {t('feature_description')}
+            {t('feature5_description')}
           </FeatureCard>
 
           <FeatureCard
@@ -126,7 +126,7 @@ export const Features = () => {
             )}
             title={t('feature6_title')}
           >
-            {t('feature_description')}
+            {t('feature6_description')}
           </FeatureCard>
         </div>
       </Section>

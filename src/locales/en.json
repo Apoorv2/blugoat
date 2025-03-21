@@ -1,7 +1,7 @@
 {
   "Index": {
-    "meta_title": "SaaS Template - The perfect SaaS template to build and scale your business with ease.",
-    "meta_description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS."
+    "meta_title": "bluGoat - AI-Powered Lead Generation Platform to Find Your Perfect Prospects",
+    "meta_description": "bluGoat helps businesses discover qualified leads with precision targeting and AI-enriched data. Specify your criteria and access actionable business intelligence instantly."
   },
   "Navbar": {
     "sign_in": "Sign In",
@@ -14,8 +14,8 @@
   },
   "Hero": {
     "follow_twitter": "Follow @Ixartz on Twitter",
-    "title": "The perfect <important>SaaS template</important> to build and scale your business with ease.",
-    "description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS.",
+    "title": "Find your <important>perfect prospects</important> with <ai>AI-powered</ai> lead intelligence",
+    "description": "Find your ideal prospects with our AI-powered lead generation platform. Specify your criteria and unlock actionable business data tailored to your exact needs.",
     "primary_button": "Get Started",
     "secondary_button": "Star on GitHub"
   },
@@ -24,20 +24,25 @@
   },
   "Features": {
     "section_subtitle": "Features",
-    "section_title": "Unlock the Full Potential of the SaaS Template",
-    "section_description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS.",
-    "feature1_title": "Node.js",
-    "feature2_title": "React",
-    "feature3_title": "Tailwind CSS",
-    "feature4_title": "TypeScript",
-    "feature5_title": "Shadcn UI",
-    "feature6_title": "ESLint",
-    "feature_description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS."
+    "section_title": "Powerful Lead Generation Tools At Your Fingertips",
+    "section_description": "Our AI-powered platform delivers quality leads tailored to your exact specifications, helping you connect with the right prospects and grow your business.",
+    "feature1_title": "Advanced Targeting",
+    "feature1_description": "Pinpoint your ideal customers with precision using demographic, firmographic, and behavioral parameters that matter to your business.",
+    "feature2_title": "Real-time Data",
+    "feature2_description": "Access fresh, up-to-date lead information that reflects the current market landscape, ensuring your outreach is always timely and relevant.",
+    "feature3_title": "AI Enrichment",
+    "feature3_description": "Leverage our AI technology to automatically enhance lead profiles with additional insights, contact details, and engagement signals.",
+    "feature4_title": "Custom Filters",
+    "feature4_description": "Create personalized search criteria to narrow down your prospect pool exactly how you want, focusing only on leads that match your specific requirements.",
+    "feature5_title": "Export Options",
+    "feature5_description": "Seamlessly download your lead data in multiple formats compatible with your CRM, email marketing tools, and other business systems.",
+    "feature6_title": "API Access",
+    "feature6_description": "Integrate our powerful lead generation capabilities directly into your existing workflow with our developer-friendly API."
   },
   "Pricing": {
-    "section_subtitle": "Features",
-    "section_title": "Unlock the Full Potential of the SaaS Template",
-    "section_description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS.",
+    "section_subtitle": "Pricing",
+    "section_title": "Choose the Perfect Plan for Your Lead Generation Needs",
+    "section_description": "Access quality prospect data with flexible plans designed to scale with your business - from startups to enterprise organizations.",
     "button_text": "Get Started"
   },
   "PricingPlan": {
@@ -57,13 +62,25 @@
     "next_renew_date": "Your subscription renews on {date}"
   },
   "FAQ": {
-    "question": "Lorem ipsum dolor sit amet, consectetur adipiscing elit?",
-    "answer": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam aliquam enim dui, id consequat turpis ullamcorper ac. Mauris id quam dolor. Nullam eu egestas turpis. Proin risus elit, sollicitudin in mi a, accumsan euismod turpis. In euismod mi sed diam tristique hendrerit."
+    "question1": "How accurate is your lead data?",
+    "answer1": "Our lead data boasts over 95% accuracy, thanks to our proprietary AI verification system and regular database updates. We continuously verify contact information and company details to ensure you always work with reliable, up-to-date information.",
+
+    "question2": "How many leads can I access per month?",
+    "answer2": "The number of leads you can access depends on your subscription plan. Our Basic plan offers 500 leads monthly, while our Premium and Enterprise plans provide 2,000 and unlimited leads respectively. Custom volume options are available for specific business needs.",
+
+    "question3": "What industries do you cover?",
+    "answer3": "Our platform covers leads across all major industries including technology, healthcare, finance, education, retail, manufacturing, and many more. Our extensive database allows you to filter prospects by specific industry classifications to find exactly what you need.",
+
+    "question4": "Can I integrate your data with my CRM?",
+    "answer4": "Absolutely! We offer seamless integration with popular CRM platforms including Salesforce, HubSpot, Zoho, and many others. Our API also allows for custom integrations with virtually any system your team uses.",
+
+    "question5": "How is your pricing structured?",
+    "answer5": "Our pricing is based on the number of leads you need and additional enrichment features. We offer monthly and annual subscription plans with significant discounts for annual commitments. Custom enterprise pricing is available for high-volume requirements."
   },
   "CTA": {
-    "title": "You are ready?",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-    "button_text": "Star on GitHub"
+    "title": "Ready to supercharge your prospecting with bluGoat?",
+    "description": "Join thousands of businesses that trust bluGoat for high-quality, targeted lead data that drives real business growth.",
+    "button_text": "Start Generating Leads"
   },
   "Footer": {
     "product": "Product",
@@ -73,7 +90,7 @@
     "company": "Company",
     "terms_of_service": "Terms Of Service",
     "privacy_policy": "Privacy Policy",
-    "designed_by": "Designed by <author></author>."
+    "designed_by": ""
   },
   "ProtectFallback": {
     "not_enough_permission": "You do not have the permissions to perform this action"
@@ -94,8 +111,8 @@
     "settings": "Settings"
   },
   "Dashboard": {
-    "meta_title": "SaaS Template Dashboard",
-    "meta_description": "A free and open-source landing page template for your SaaS business, built with Next.js, TypeScript, Shadcn UI, and Tailwind CSS."
+    "meta_title": "bluGoat - AI-Powered Lead Generation Platform to Find Your Perfect Prospects",
+    "meta_description": "bluGoat helps businesses discover qualified leads with precision targeting and AI-enriched data. Specify your criteria and access actionable business intelligence instantly."
   },
   "DashboardIndex": {
     "title_bar": "Dashboard",
