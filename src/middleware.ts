@@ -23,6 +23,15 @@ const isProtectedRoute = createRouteMatcher([
   '/:locale/api(.*)',
 ]);
 
+const publicRoutes = [
+  '/',
+  '/sign-in',
+  '/sign-up',
+  '/:locale',
+  '/:locale/sign-in',
+  '/:locale/sign-up',
+];
+
 export default function middleware(
   request: NextRequest,
   event: NextFetchEvent,
@@ -30,14 +39,16 @@ export default function middleware(
   if (
     request.nextUrl.pathname.includes('/sign-in')
     || request.nextUrl.pathname.includes('/sign-up')
+    || publicRoutes.includes(new URL(request.url).pathname)
     || isProtectedRoute(request)
   ) {
     return clerkMiddleware((auth, req) => {
       const authObj = auth();
 
       if (isProtectedRoute(req)) {
-        const locale
-          = req.nextUrl.pathname.match(/(\/.*)\/dashboard/)?.at(1) ?? '';
+        const path = req.nextUrl.pathname;
+        const localeMatch = path.match(/^\/([a-z]{2})(\/|$)/);
+        const locale = localeMatch ? `/${localeMatch[1]}` : '';
 
         const signInUrl = new URL(`${locale}/sign-in`, req.url);
 
