@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/Apoorv2/blugoat/compare/v1.0.0...v1.0.1) (2025-03-21)
+
+
+### Bug Fixes
+
+* remove hanging demo boilerplate ([3d6bf26](https://github.com/Apoorv2/blugoat/commit/3d6bf26e19dd97a8d7152984f6ca9118b20ff6f5))
+
 # 1.0.0 (2025-03-21)
 
 
