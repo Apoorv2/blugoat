@@ -27,9 +27,13 @@ const publicRoutes = [
   '/',
   '/sign-in',
   '/sign-up',
-  '/:locale',
-  '/:locale/sign-in',
-  '/:locale/sign-up',
+  '/en',
+  '/fr',
+  '/en/sign-in',
+  '/fr/sign-in',
+  '/en/sign-up',
+  '/fr/sign-up',
+  // Add any other specific locale paths you support
 ];
 
 export default function middleware(
