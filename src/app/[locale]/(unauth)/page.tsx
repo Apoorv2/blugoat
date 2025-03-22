@@ -10,6 +10,17 @@ import { Navbar } from '@/templates/Navbar';
 import { Pricing } from '@/templates/Pricing';
 import { Sponsors } from '@/templates/Sponsors';
 
+// eslint-disable-next-line no-console
+console.log('ENV CHECK:', {
+  hasSecretKey: !!process.env.CLERK_SECRET_KEY,
+  firstChars: process.env.CLERK_SECRET_KEY?.substring(0, 4),
+  otherKeys: {
+    hasPublishableKey: !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    hasSignInUrl: !!process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
+    hasSignUpUrl: !!process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL,
+  },
+});
+
 export async function generateMetadata(props: { params: { locale: string } }) {
   const t = await getTranslations({
     locale: props.params.locale,
