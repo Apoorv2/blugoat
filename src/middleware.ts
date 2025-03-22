@@ -1,4 +1,4 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { clerkMiddleware } from '@clerk/nextjs/server';
 import {
   type NextFetchEvent,
   type NextRequest,
@@ -8,66 +8,45 @@ import createMiddleware from 'next-intl/middleware';
 
 import { AllLocales, AppConfig } from './utils/AppConfig';
 
+// Create the next-intl middleware
 const intlMiddleware = createMiddleware({
   locales: AllLocales,
   localePrefix: AppConfig.localePrefix,
   defaultLocale: AppConfig.defaultLocale,
 });
 
-const isProtectedRoute = createRouteMatcher([
-  '/dashboard(.*)',
-  '/:locale/dashboard(.*)',
-  '/onboarding(.*)',
-  '/:locale/onboarding(.*)',
-  '/api(.*)',
-  '/:locale/api(.*)',
-]);
-
 export default function middleware(
-  request: NextRequest,
-  event: NextFetchEvent,
+  req: NextRequest,
+  evt: NextFetchEvent,
 ) {
-  if (
-    request.nextUrl.pathname.includes('/sign-in')
-    || request.nextUrl.pathname.includes('/sign-up')
-    || isProtectedRoute(request)
-  ) {
-    return clerkMiddleware((auth, req) => {
-      const authObj = auth();
-
-      if (isProtectedRoute(req)) {
-        const locale
-          = req.nextUrl.pathname.match(/(\/.*)\/dashboard/)?.at(1) ?? '';
-
-        const signInUrl = new URL(`${locale}/sign-in`, req.url);
-
-        authObj.protect({
-          // `unauthenticatedUrl` is needed to avoid error: "Unable to find `next-intl` locale because the middleware didn't run on this request"
-          unauthenticatedUrl: signInUrl.toString(),
-        });
-      }
-
-      if (
-        authObj.userId
-        && !authObj.orgId
-        && req.nextUrl.pathname.includes('/dashboard')
-        && !req.nextUrl.pathname.endsWith('/organization-selection')
-      ) {
-        const orgSelection = new URL(
-          '/onboarding/organization-selection',
-          req.url,
-        );
-
-        return NextResponse.redirect(orgSelection);
-      }
-
-      return intlMiddleware(req);
-    })(request, event);
+  // Skip authentication for static assets
+  const path = req.nextUrl.pathname;
+  if (path.startsWith('/_next') || path.includes('/api/webhook')) {
+    return;
   }
 
-  return intlMiddleware(request);
+  // Public routes that don't need auth
+  if (path === '/'
+    || path.includes('/sign-in')
+    || path.includes('/sign-up')
+    || AllLocales.some(locale => path === `/${locale}`
+      || path.includes(`/${locale}/sign-in`)
+      || path.includes(`/${locale}/sign-up`))) {
+    return intlMiddleware(req);
+  }
+
+  return clerkMiddleware((auth, req) => {
+    const { userId, orgId } = auth();
+
+    if (userId && !orgId && req.nextUrl.pathname.includes('/dashboard')) {
+      const url = new URL('/onboarding/organization-selection', req.url);
+      return NextResponse.redirect(url);
+    }
+
+    return intlMiddleware(req);
+  })(req, evt);
 }
 
 export const config = {
-  matcher: ['/((?!.+\\.[\\w]+$|_next|monitoring).*)', '/', '/(api|trpc)(.*)'], // Also exclude tunnelRoute used in Sentry from the matcher
+  matcher: ['/((?!.*\\..*|_next|monitoring).*)', '/', '/(api|trpc)(.*)'],
 };
