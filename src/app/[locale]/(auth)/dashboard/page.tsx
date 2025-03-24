@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable ts/no-use-before-define */
 /* eslint-disable unused-imports/no-unused-vars */
 'use client';

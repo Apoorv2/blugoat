@@ -8,10 +8,9 @@ import { Card } from '@/components/ui/card';
 
 type CreditAnimationProps = {
   onComplete: () => void;
-  _redirectUrl?: string | null;
 };
 
-export const CreditAnimation = ({ onComplete, _redirectUrl }: CreditAnimationProps) => {
+export const CreditAnimation = ({ onComplete }: CreditAnimationProps) => {
   const [count, setCount] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const targetCredits = 100;

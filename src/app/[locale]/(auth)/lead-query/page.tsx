@@ -171,6 +171,7 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
     } else {
       setAvailableCities([]);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.state]);
 
   const handleOccupationToggle = (occupationId: string) => {
