@@ -4,7 +4,7 @@ import { BILLING_INTERVAL, type PricingPlan } from '@/types/Subscription';
 
 const localePrefix: LocalePrefix = 'as-needed';
 
-// FIXME: Update this configuration file based on your project information
+// Simplify to English-only
 export const AppConfig = {
   name: 'BlueGoat',
   locales: [
@@ -12,13 +12,13 @@ export const AppConfig = {
       id: 'en',
       name: 'English',
     },
-    { id: 'fr', name: 'Français' },
   ],
   defaultLocale: 'en',
   localePrefix,
 };
 
-export const AllLocales = AppConfig.locales.map(locale => locale.id);
+// Keep this for compatibility
+export const AllLocales = ['en'];
 
 export const PLAN_ID = {
   FREE: 'free',

@@ -1,22 +1,14 @@
+'use client';
+
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { getTranslations } from 'next-intl/server';
 
 import { DashboardHeader } from '@/features/dashboard/DashboardHeader';
 
-export async function generateMetadata(props: { params: { locale: string } }) {
-  const t = await getTranslations({
-    locale: props.params.locale,
-    namespace: 'Dashboard',
-  });
-
-  return {
-    title: t('meta_title'),
-    description: t('meta_description'),
-  };
-}
-
-export default function DashboardLayout(props: { children: React.ReactNode }) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('DashboardLayout');
+  const params = useParams();
+  const locale = params.locale as string;
 
   return (
     <>
@@ -28,16 +20,14 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
                 href: '/dashboard',
                 label: t('home'),
               },
-              // PRO: Link to the /dashboard/todos page
               {
-                href: '/dashboard/organization-profile/organization-members',
-                label: t('members'),
+                href: `/${locale}/lead-query`,
+                label: t('lead_query'),
               },
               {
-                href: '/dashboard/organization-profile',
-                label: t('settings'),
+                href: '/dashboard/user-profile',
+                label: t('profile'),
               },
-              // PRO: Link to the /dashboard/billing page
             ]}
           />
         </div>
@@ -45,7 +35,7 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
 
       <div className="min-h-[calc(100vh-72px)] bg-muted">
         <div className="mx-auto max-w-screen-xl px-3 pb-16 pt-6">
-          {props.children}
+          {children}
         </div>
       </div>
     </>

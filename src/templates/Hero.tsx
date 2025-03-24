@@ -28,7 +28,7 @@ export const Hero = () => {
           <>
             <a
               className={buttonVariants({ size: 'lg' })}
-              href="https://github.com/ixartz/SaaS-Boilerplate"
+              href="/sign-up"
             >
               {t('primary_button')}
             </a>

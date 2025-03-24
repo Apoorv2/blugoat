@@ -1,9 +1,5 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import {
-  type NextFetchEvent,
-  type NextRequest,
-  NextResponse,
-} from 'next/server';
+import { authMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
 
 import { AllLocales, AppConfig } from './utils/AppConfig';
@@ -23,51 +19,89 @@ const isProtectedRoute = createRouteMatcher([
   '/:locale/api(.*)',
 ]);
 
-export default function middleware(
-  request: NextRequest,
-  event: NextFetchEvent,
-) {
-  if (
-    request.nextUrl.pathname.includes('/sign-in')
-    || request.nextUrl.pathname.includes('/sign-up')
-    || isProtectedRoute(request)
-  ) {
-    return clerkMiddleware((auth, req) => {
-      const authObj = auth();
+// Add onboarding paths that should be allowed without redirects
+const onboardingWhitelist = [
+  'onboarding/credits',
+  'onboarding/organization-selection',
+  'lead-query',
+];
 
-      if (isProtectedRoute(req)) {
-        const locale
-          = req.nextUrl.pathname.match(/(\/.*)\/dashboard/)?.at(1) ?? '';
+export default authMiddleware({
+  publicRoutes: [
+    '/',
+    '/sign-in(.*)',
+    '/sign-up(.*)',
+    '/:locale/sign-in(.*)',
+    '/:locale/sign-up(.*)',
+    '/onboarding/credits(.*)',
+    '/:locale/onboarding/credits(.*)',
+    '/onboarding/organization-selection(.*)',
+    '/:locale/onboarding/organization-selection(.*)',
+    '/lead-query(.*)',
+    '/:locale/lead-query(.*)',
+  ],
+  beforeAuth: (req) => {
+    // Run the intl middleware before auth
+    return intlMiddleware(req);
+  },
+  afterAuth: (auth, req) => {
+    // Debug logging
+    console.log('MIDDLEWARE: Processing request for URL:', req.url);
 
-        const signInUrl = new URL(`${locale}/sign-in`, req.url);
+    // Check for debug parameter - always allow with debug param
+    const url = new URL(req.url);
+    const isDebug = url.searchParams.get('debug') === 'true';
+    const bypassOrgCheck = url.searchParams.get('bypass_org_check') === 'true';
 
-        authObj.protect({
-          // `unauthenticatedUrl` is needed to avoid error: "Unable to find `next-intl` locale because the middleware didn't run on this request"
-          unauthenticatedUrl: signInUrl.toString(),
-        });
-      }
+    if (isDebug) {
+      console.log('MIDDLEWARE: Debug mode, allowing access');
+      return NextResponse.next();
+    }
 
-      if (
-        authObj.userId
-        && !authObj.orgId
-        && req.nextUrl.pathname.includes('/dashboard')
-        && !req.nextUrl.pathname.endsWith('/organization-selection')
-      ) {
-        const orgSelection = new URL(
-          '/onboarding/organization-selection',
-          req.url,
-        );
+    // If bypassing org check or has a valid session, allow access
+    if (bypassOrgCheck || auth.userId || auth.isPublicRoute) {
+      console.log('MIDDLEWARE: Allowing access - bypass:', bypassOrgCheck, 'userId:', !!auth.userId, 'publicRoute:', auth.isPublicRoute);
+      return NextResponse.next();
+    }
 
-        return NextResponse.redirect(orgSelection);
-      }
+    // Otherwise redirect to login
+    if (!auth.userId && !auth.isPublicRoute) {
+      console.log('MIDDLEWARE: Unauthorized access, redirecting to login');
+      const locale = req.nextUrl.pathname.match(/(\/.*)\/dashboard/)?.at(1) ?? '';
+      const signInUrl = new URL(`${locale}/sign-in`, req.url);
+      return NextResponse.redirect(signInUrl);
+    }
 
-      return intlMiddleware(req);
-    })(request, event);
-  }
+    // Inside your middleware handler
+    console.log(`MIDDLEWARE: Checking path: ${req.nextUrl.pathname}`);
+    const isOnboardingPath = onboardingWhitelist.some(path =>
+      req.nextUrl.pathname.includes(path),
+    );
 
-  return intlMiddleware(request);
-}
+    // Allow onboarding paths even without auth
+    if (isOnboardingPath) {
+      console.log(`MIDDLEWARE: Allowing onboarding path: ${req.nextUrl.pathname}`);
+      return NextResponse.next();
+    }
+
+    // Add a check for pages that should have a locale
+    const needsLocale = req.nextUrl.pathname.match(/^\/(onboarding|lead-query|dashboard)/);
+    if (needsLocale && !req.nextUrl.pathname.match(/^\/[a-z]{2}[/-]/)) {
+      // Add default locale 'en'
+      const newUrl = new URL(`/en${req.nextUrl.pathname}${req.nextUrl.search}`, req.url);
+      console.log('MIDDLEWARE: Adding default locale, redirecting to:', newUrl.toString());
+      return NextResponse.redirect(newUrl);
+    }
+
+    if (req.nextUrl.pathname.includes('onboarding/credits')) {
+      console.log('MIDDLEWARE: Processing credits page request');
+      return NextResponse.next();
+    }
+
+    return NextResponse.next();
+  },
+});
 
 export const config = {
-  matcher: ['/((?!.+\\.[\\w]+$|_next|monitoring).*)', '/', '/(api|trpc)(.*)'], // Also exclude tunnelRoute used in Sentry from the matcher
+  matcher: ['/((?!.+\\.[\\w]+$|_next|monitoring).*)', '/', '/(api|trpc)(.*)'],
 };

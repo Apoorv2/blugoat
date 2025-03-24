@@ -1,22 +1,32 @@
-import { SignUp } from '@clerk/nextjs';
-import { getTranslations } from 'next-intl/server';
+'use client';
 
-import { getI18nPath } from '@/utils/Helpers';
+import { SignUp, useSignUp } from '@clerk/nextjs';
+import { useEffect } from 'react';
 
-export async function generateMetadata(props: { params: { locale: string } }) {
-  const t = await getTranslations({
-    locale: props.params.locale,
-    namespace: 'SignUp',
-  });
+export default function SignUpPage(props: { params: { locale: string } }) {
+  const { isLoaded, signUp } = useSignUp();
+  const { locale } = props.params;
 
-  return {
-    title: t('meta_title'),
-    description: t('meta_description'),
-  };
+  // Handle redirect after successful sign-up
+  useEffect(() => {
+    if (isLoaded && signUp?.status === 'complete') {
+      console.log('Sign-up complete, redirecting to credits page...');
+
+      // Clear any previous flag
+      localStorage.removeItem('has_seen_credits');
+
+      // Force redirect with window.location for more reliable redirect
+      const redirectUrl = `/${locale}/onboarding/credits?bypass_org_check=true&from_signup=true`;
+      window.location.href = redirectUrl;
+    }
+  }, [isLoaded, signUp, locale]);
+
+  return (
+    <div className="p-8">
+      <SignUp
+        redirectUrl={`/${locale}/onboarding/credits?bypass_org_check=true&from_signup=true`}
+        afterSignUpUrl={`/${locale}/onboarding/credits?bypass_org_check=true&from_signup=true`}
+      />
+    </div>
+  );
 }
-
-const SignUpPage = (props: { params: { locale: string } }) => (
-  <SignUp path={getI18nPath('/sign-up', props.params.locale)} />
-);
-
-export default SignUpPage;

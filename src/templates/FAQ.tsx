@@ -34,10 +34,6 @@ export const FAQ = () => {
           <AccordionTrigger>{t('question5')}</AccordionTrigger>
           <AccordionContent>{t('answer5')}</AccordionContent>
         </AccordionItem>
-        <AccordionItem value="item-6">
-          <AccordionTrigger>{t('question5')}</AccordionTrigger>
-          <AccordionContent>{t('answer5')}</AccordionContent>
-        </AccordionItem>
       </Accordion>
     </Section>
   );

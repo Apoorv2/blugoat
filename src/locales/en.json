@@ -10,7 +10,11 @@
     "docs": "Docs",
     "blog": "Blog",
     "community": "Community",
-    "company": "Company"
+    "company": "Company",
+    "home": "Home",
+    "features": "Features",
+    "pricing": "Pricing",
+    "about": "About"
   },
   "Hero": {
     "follow_twitter": "Follow @Ixartz on Twitter",
@@ -105,9 +109,10 @@
   },
   "DashboardLayout": {
     "home": "Home",
-    "todos": "Todos",
-    "members": "Members",
+    "profile": "Profile",
+    "lead_query": "Lead Query",
     "billing": "Billing",
+    "members": "Members",
     "settings": "Settings"
   },
   "Dashboard": {
@@ -124,7 +129,9 @@
   },
   "UserProfile": {
     "title_bar": "User Profile",
-    "title_bar_description": "View and manage your user profile"
+    "title_bar_description": "Manage your account settings and view purchase history",
+    "profile_tab": "Profile",
+    "purchases_tab": "Purchase History"
   },
   "OrganizationProfile": {
     "title_bar": "Organization Management",
@@ -179,5 +186,29 @@
     "message_title": "Message",
     "message_description": "Enter a detailed message for your todo.",
     "submit_button": "Submit"
+  },
+  "LeadQuery": {
+    "title_bar": "Lead Query",
+    "title_bar_description": "Find and filter your perfect leads"
+  },
+  "Metadata": {
+    "title": "My Application",
+    "description": "Welcome to my application"
+  },
+  "PurchaseHistory": {
+    "history_title": "Transaction History",
+    "credits_tab": "Credit Top-Ups",
+    "leads_tab": "Lead Purchases",
+    "credit_history_title": "Credit Purchase History",
+    "credit_history_description": "Record of all credit purchases and top-ups for your account",
+    "lead_history_title": "Lead Purchase History",
+    "lead_history_description": "Record of all leads purchased and credits consumed",
+    "transaction_id": "Transaction ID",
+    "date": "Date",
+    "credits": "Credits",
+    "amount": "Amount",
+    "status": "Status",
+    "leads_purchased": "Leads",
+    "credits_used": "Credits Used"
   }
 }

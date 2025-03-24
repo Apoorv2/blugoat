@@ -16,7 +16,10 @@ export async function generateMetadata(props: { params: { locale: string } }) {
 }
 
 const SignInPage = (props: { params: { locale: string } }) => (
-  <SignIn path={getI18nPath('/sign-in', props.params.locale)} />
+  <SignIn
+    path={getI18nPath('/sign-in', props.params.locale)}
+    afterSignInUrl="/dashboard?bypass_org_check=true"
+  />
 );
 
 export default SignInPage;

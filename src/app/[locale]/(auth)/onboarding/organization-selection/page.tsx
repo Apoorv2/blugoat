@@ -1,29 +1,56 @@
-import { OrganizationList } from '@clerk/nextjs';
-import { getTranslations } from 'next-intl/server';
+'use client';
 
-export async function generateMetadata(props: { params: { locale: string } }) {
-  const t = await getTranslations({
-    locale: props.params.locale,
-    namespace: 'Index',
-  });
+import { OrganizationList, useOrganization, useUser } from '@clerk/nextjs';
+// import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-  return {
-    title: t('meta_title'),
-    description: t('meta_description'),
-  };
-}
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-const OrganizationSelectionPage = () => (
-  <div className="flex min-h-screen items-center justify-center">
-    <OrganizationList
-      afterSelectOrganizationUrl="/dashboard"
-      afterCreateOrganizationUrl="/dashboard"
-      hidePersonal
-      skipInvitationScreen
-    />
-  </div>
-);
+const OnboardingPage = (props: { params: { locale: string } }) => {
+  // const router = useRouter();
+  useUser();
+  useOrganization();
+  const { locale } = props.params;
 
-export const dynamic = 'force-dynamic';
+  // const [showCreditAnimation, setShowCreditAnimation] = useState(true);
 
-export default OrganizationSelectionPage;
+  // Handle animation completion - redirect to lead query page
+  // const handleAnimationComplete = () => {
+  //   router.push(`/${locale}/dashboard`);
+  // };
+
+  // Set cookie to remember that user has seen org selection
+  useEffect(() => {
+    // Set a cookie to remember the user has seen the org selection page
+    document.cookie = 'has_seen_org_selection=true; path=/; max-age=31536000; SameSite=Lax';
+  }, []);
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4">
+      <Card className="mx-auto w-full max-w-3xl rounded-xl shadow-lg">
+        <CardHeader className="text-center">
+          <CardTitle className="mb-2 text-3xl font-bold text-blue-700">Organization Setup</CardTitle>
+          <CardDescription className="text-lg text-blue-500">
+            Create or join an organization to continue
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 px-4 py-2 text-center text-sm text-gray-600">
+            <p>
+              Organizations allow you to collaborate with team members and share lead data.
+              You can create a new organization or accept an invitation to join an existing one.
+            </p>
+          </div>
+
+          <OrganizationList
+            hidePersonal
+            afterSelectOrganizationUrl={`/${locale}/dashboard`}
+            afterCreateOrganizationUrl={`/${locale}/dashboard`}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default OnboardingPage;
