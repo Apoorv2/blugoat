@@ -8,7 +8,7 @@ import { TitleBar } from '@/features/dashboard/TitleBar';
 import { PurchaseHistory } from '@/features/user/PurchaseHistory';
 import { UserProfileDetails } from '@/features/user/UserProfileDetails';
 
-const UserProfilePage = (props: { params: { locale: string } }) => {
+const UserProfilePage = (_props: { params: { locale: string } }) => {
   const t = useTranslations('UserProfile');
   const [activeTab, setActiveTab] = useState('profile');
 
