@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 // You'd replace this with your actual database code
-async function saveToDatabase(data: any) {
+async function saveToDatabase(_data: any) {
   // Example implementation - replace with your database logic
   // console.log('Saving to database:', data);
   // await db.userPreferences.create({ data });
