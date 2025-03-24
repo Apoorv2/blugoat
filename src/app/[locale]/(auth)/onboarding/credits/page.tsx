@@ -64,7 +64,7 @@ const CreditsOnboardingPage = (props: { params: { locale: string } }) => {
         ? (
             <CreditAnimation
               onComplete={handleAnimationComplete}
-              redirectUrl={null}
+              _redirectUrl={null}
             />
           )
         : (
