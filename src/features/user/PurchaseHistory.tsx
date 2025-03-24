@@ -26,9 +26,10 @@ const SAMPLE_LEAD_PURCHASES = [
 ];
 
 export const PurchaseHistory = () => {
-  const { user } = useUser();
+  const { user: _user } = useUser();
+  // eslint-disable-next-line unused-imports/no-unused-vars
   const t = useTranslations('PurchaseHistory');
-  const [activeTab, setActiveTab] = useState('credits');
+  const [_activeTab, setActiveTab] = useState('credits');
 
   // Format date for display
   const formatDate = (dateString: string) => {

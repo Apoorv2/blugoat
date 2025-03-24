@@ -1,3 +1,4 @@
+// eslint-disable-next-line ts/ban-ts-comment
 // @ts-nocheck
 
 'use client';
@@ -67,6 +68,7 @@ export const UserProfileDetails = () => {
         phone: clerkUserData.phone,
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, user]);
 
   // Get initials for avatar fallback

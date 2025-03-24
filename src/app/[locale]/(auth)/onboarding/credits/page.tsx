@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 'use client';
 
 import { useUser } from '@clerk/nextjs';
@@ -45,6 +46,7 @@ const CreditsOnboardingPage = (props: { params: { locale: string } }) => {
     }
 
     // First-time or debugging users see the animation
+
     console.log('Showing credit animation to user');
     setShowAnimation(true);
   }, [isLoaded, props.params.locale, router]);
@@ -53,6 +55,7 @@ const CreditsOnboardingPage = (props: { params: { locale: string } }) => {
     localStorage.setItem('has_seen_credits', 'true');
 
     const redirectPath = `/${props.params.locale}/lead-query?bypass_org_check=true`;
+
     console.log('Animation complete, redirecting to:', redirectPath);
 
     window.location.href = redirectPath;

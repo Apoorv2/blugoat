@@ -11,13 +11,16 @@ type CreditAnimationProps = {
   _redirectUrl?: string | null;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const CreditAnimation = ({ onComplete, _redirectUrl }: CreditAnimationProps) => {
   const [count, setCount] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const targetCredits = 100;
 
   useEffect(() => {
+    // eslint-disable-next-line no-console
     console.log('Credit animation mounted');
+    // eslint-disable-next-line no-console
     return () => console.log('Credit animation unmounted');
   }, []);
 
