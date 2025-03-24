@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true, // This is needed by @testing-library to be cleaned up after each test
     include: ['src/**/*.test.{js,jsx,ts,tsx}'],
     coverage: {
+      provider: 'v8',
       include: ['src/**/*'],
       exclude: ['src/**/*.stories.{js,jsx,ts,tsx}', '**/*.d.ts'],
     },
