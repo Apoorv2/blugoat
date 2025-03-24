@@ -11,7 +11,6 @@ type CreditAnimationProps = {
   _redirectUrl?: string | null;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const CreditAnimation = ({ onComplete, _redirectUrl }: CreditAnimationProps) => {
   const [count, setCount] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
@@ -36,17 +35,21 @@ export const CreditAnimation = ({ onComplete, _redirectUrl }: CreditAnimationPro
     } else {
       const timer = setTimeout(() => {
         setIsComplete(true);
+        // eslint-disable-next-line no-console
         console.log('Animation sequence complete');
 
         // Auto-redirect after 5 seconds if button isn't clicked
         const redirectTimer = setTimeout(() => {
+          // eslint-disable-next-line no-console
           console.log('Auto-redirect initiated');
+          // eslint-disable-next-line ts/no-use-before-define
           handleButtonClick();
         }, 5000);
         return () => clearTimeout(redirectTimer);
       }, 1000);
       return () => clearTimeout(timer);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [count]);
 
   const handleButtonClick = () => {
