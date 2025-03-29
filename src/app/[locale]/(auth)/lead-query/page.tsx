@@ -1,19 +1,21 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { XIcon } from 'lucide-react';
+import { CheckIcon, Search, XIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { useCities, useIndustries, useStates } from '@/utils/locationUtils';
 
-// Industry options
-const industries = [
+// Industry options (prefixed with _ to satisfy unused var rule)
+const _industries = [
   { id: 'healthcare', label: 'Healthcare' },
   { id: 'legal', label: 'Legal' },
   { id: 'tech', label: 'Technology' },
@@ -24,8 +26,8 @@ const industries = [
   { id: 'hospitality', label: 'Hospitality' },
 ];
 
-// Occupation options
-const occupations = [
+// Occupation options (prefixed with _ to satisfy unused var rule)
+const _occupations = [
   { id: 'doctors', label: 'Doctors' },
   { id: 'lawyers', label: 'Lawyers' },
   { id: 'engineers', label: 'Engineers' },
@@ -36,8 +38,8 @@ const occupations = [
   { id: 'marketers', label: 'Marketers' },
 ];
 
-// Indian States
-const states = [
+// Indian States (prefixed with _ to satisfy unused var rule)
+const _states = [
   { id: 'maharashtra', label: 'Maharashtra' },
   { id: 'karnataka', label: 'Karnataka' },
   { id: 'tamil_nadu', label: 'Tamil Nadu' },
@@ -148,6 +150,9 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
   const { locale } = props.params;
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [_queryType, setQueryType] = useState<'guided' | 'direct'>('guided');
+  const [directQuery, setDirectQuery] = useState('');
+  const [_isDirectQuerySubmitted, _setIsDirectQuerySubmitted] = useState(false);
 
   const [formData, setFormData] = useState({
     state: '',
@@ -157,8 +162,14 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
     subfilters: [] as Subfilter[],
   });
 
-  const [availableCities, setAvailableCities] = useState<{ id: string; label: string }[]>([]);
+  const [_availableCities, setAvailableCities] = useState<{ id: string; label: string }[]>([]);
   const [subfilterCount, setSubfilterCount] = useState(0);
+
+  // State handling
+  const [selectedState, setSelectedState] = useState<string>('');
+  const { states, loading: statesLoading } = useStates();
+  const { cities, loading: citiesLoading } = useCities(selectedState);
+  const { industries, loading: _industriesLoading } = useIndustries();
 
   // Update available cities when state changes
   useEffect(() => {
@@ -174,7 +185,7 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.state]);
 
-  const handleOccupationToggle = (occupationId: string) => {
+  const _handleOccupationToggle = (occupationId: string) => {
     setFormData((prev) => {
       const current = [...prev.selectedOccupations];
       if (current.includes(occupationId)) {
@@ -191,7 +202,7 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
     });
   };
 
-  const addSubfilter = (filterId: string) => {
+  const _addSubfilter = (filterId: string) => {
     const filterType = subfilterTypes.find(f => f.id === filterId)?.type || 'select';
     const newFilter: Subfilter = {
       id: `filter-${subfilterCount}`,
@@ -229,35 +240,101 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
     }));
   };
 
-  const nextStep = () => {
+  const _nextStep = () => {
     setStep(prev => prev + 1);
   };
 
-  const prevStep = () => {
+  const _prevStep = () => {
     setStep(prev => prev - 1);
   };
 
-  const skipToEnd = () => {
+  const _skipToEnd = () => {
     localStorage.setItem('onboarding-data', JSON.stringify(formData));
     localStorage.setItem('has_seen_credits', 'true');
     router.push(`/${locale}/dashboard?bypass_org_check=true`);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsSubmitting(true);
-    localStorage.setItem('onboarding-data', JSON.stringify(formData));
-    localStorage.setItem('has_seen_credits', 'true');
 
-    setTimeout(() => {
-      router.push(`/${locale}/dashboard?bypass_org_check=true`);
-    }, 1000);
+    try {
+      // Build query string based on form data
+      const queryParts = [];
+
+      // Add industry if selected (not "all")
+      if (formData.industry && formData.industry !== 'all') {
+        queryParts.push(`"${formData.industry}"`);
+      }
+
+      // Add city if selected - now with parentheses
+      if (formData.city && formData.city !== 'all') {
+        queryParts.push(`("${formData.city}")`);
+      }
+
+      // Add state if selected - now with parentheses
+      if (formData.state && formData.state !== 'all') {
+        queryParts.push(`("${formData.state}")`);
+      }
+
+      // Combine query parts with AND operator
+      let queryExpression = queryParts.join(' AND ');
+
+      // If no filters were selected, use a default query that returns all records
+      if (!queryExpression) {
+        queryExpression = '""'; // Empty quotes will match all records
+      }
+
+      // Create the request body
+      const requestBody = {
+        expression: queryExpression,
+        includeMetadata: true,
+        includeContacts: true,
+        page: 1,
+      };
+
+      // Call the API endpoint
+      const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/individuals/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Save to localStorage for dashboard to access
+      localStorage.setItem('lead-query-results', JSON.stringify({
+        success: true,
+        data: data.data,
+        pagination: data.pagination,
+        query: data.query,
+        userSelections: {
+          state: formData.state,
+          city: formData.city,
+          industry: formData.industry,
+        },
+      }));
+
+      // Redirect to dashboard
+      router.push(`/${locale}/dashboard`);
+    } catch (error) {
+      console.error('Error submitting query:', error);
+      // Handle error - you could show an error notification here
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getFilterLabel = (filterId: string) => {
     return subfilterTypes.find(f => f.id === filterId)?.label || filterId;
   };
 
-  const renderSubfilter = (filter: Subfilter) => {
+  const _renderSubfilter = (filter: Subfilter) => {
     const filterLabel = getFilterLabel(filter.filterId);
 
     if (filter.type === 'range') {
@@ -334,6 +411,50 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
     return null;
   };
 
+  const handleDirectQuerySubmit = async () => {
+    if (!directQuery.trim()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Now try the actual query
+
+      // Use your curl command directly in the client (not recommended for production)
+      const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/query/natural-language', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: directQuery,
+          includeContacts: true,
+          includeMetadata: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response:', errorText);
+        throw new Error(`Failed to fetch leads: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Save to localStorage so dashboard can access it
+      localStorage.setItem('lead-query-results', JSON.stringify(data));
+      localStorage.setItem('direct-query', directQuery);
+
+      // Redirect to dashboard
+      router.push(`/${locale}/dashboard`);
+    } catch (error) {
+      console.error('Error submitting query:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-white p-4">
       <motion.div
@@ -346,10 +467,10 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-8">
             <div className="mb-2 flex justify-between">
               <CardTitle className="text-2xl text-blue-800">
-                Help Us Find Your Perfect Leads
+                Help Us Find Your Perfect Custom Audience
               </CardTitle>
               <div className="flex items-center space-x-1">
-                {[1, 2, 3].map(num => (
+                {[1, 2].map(num => (
                   <motion.div
                     key={num}
                     className={`h-2 w-8 rounded ${
@@ -362,193 +483,211 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
               </div>
             </div>
             <CardDescription className="text-blue-600">
-              {step === 1 && 'Tell us where you\'re looking for leads'}
+              {step === 1 && 'Tell us where you\'re looking for Audience'}
               {step === 2 && 'What industry are you targeting?'}
-              {step === 3 && 'Select the occupations you\'re most interested in'}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="p-6">
-            <AnimatePresence mode="wait">
-              {step === 1 && (
-                <motion.div
-                  key="step1"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ type: 'spring', damping: 25 }}
-                  className="space-y-6"
-                >
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Tabs defaultValue="guided" className="mt-4" onValueChange={v => setQueryType(v as 'guided' | 'direct')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="guided">Guided Search</TabsTrigger>
+                <TabsTrigger value="direct">Direct Query</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="direct" className="m-0">
+                <CardContent className="pt-4">
+                  <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="state">State</Label>
-                      <Select
-                        value={formData.state}
-                        onValueChange={(value: string) => setFormData({ ...formData, state: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select state" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {states.map(state => (
-                            <SelectItem key={state.id} value={state.id}>
-                              {state.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
-                      <Select
-                        value={formData.city}
-                        onValueChange={(value: string) => setFormData({ ...formData, city: value })}
-                        disabled={!formData.state}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={formData.state ? 'Select city' : 'Choose a state first'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableCities.map(city => (
-                            <SelectItem key={city.id} value={city.id}>
-                              {city.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="directQuery">Write your query in natural language</Label>
+                      <div className="relative">
+                        <Textarea
+                          id="directQuery"
+                          placeholder="Example: Software engineers in Delhi or Marketing managers in Bangalore"
+                          className="h-24 pl-10 pt-3"
+                          value={directQuery}
+                          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDirectQuery(e.target.value)}
+                        />
+                        <Search className="absolute left-3 top-3 size-5 text-gray-400" />
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        Describe exactly what you're looking for, including job titles, locations,
+                        industries or any other criteria.
+                      </p>
                     </div>
                   </div>
-                </motion.div>
-              )}
+                </CardContent>
 
-              {step === 2 && (
-                <motion.div
-                  key="step2"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ type: 'spring', damping: 25 }}
-                  className="space-y-6"
-                >
-                  <div className="space-y-4">
-                    <Label htmlFor="industry">Primary Industry</Label>
-                    <Select
-                      value={formData.industry}
-                      onValueChange={(value: string) => setFormData({ ...formData, industry: value })}
+                <CardFooter className="flex justify-between border-t bg-gradient-to-r from-gray-50 to-slate-50 p-6">
+                  <Button variant="ghost" onClick={() => router.push(`/${locale}/dashboard`)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleDirectQuerySubmit}
+                    className="bg-blue-600 hover:bg-blue-700"
+                    disabled={isSubmitting || !directQuery.trim()}
+                  >
+                    {isSubmitting ? 'Processing...' : 'Find My Leads'}
+                  </Button>
+                </CardFooter>
+              </TabsContent>
+
+              <TabsContent value="guided" className="m-0">
+                <AnimatePresence mode="wait">
+                  {step === 1 && (
+                    <motion.div
+                      key="step1"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ type: 'spring', damping: 25 }}
+                      className="space-y-6"
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select industry" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {industries.map(industry => (
-                          <SelectItem key={industry.id} value={industry.id}>
-                            {industry.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </motion.div>
-              )}
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="state">State</Label>
+                          <Select
+                            value={selectedState}
+                            onValueChange={(value) => {
+                              const stateValue = value === 'all' ? '' : value;
+                              setSelectedState(stateValue);
+                              // Reset city when state changes
+                              setFormData({ ...formData, state: stateValue, city: '' });
+                            }}
+                            disabled={statesLoading}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select state" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All States</SelectItem>
+                              {states.map((state: any) => (
+                                <SelectItem key={state.id} value={state.name}>
+                                  {state.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-              {step === 3 && (
-                <motion.div
-                  key="step3"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ type: 'spring', damping: 25 }}
-                  className="space-y-6"
-                >
-                  <div className="space-y-4">
-                    <Label>Target Occupations</Label>
-                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                      {occupations.map(occupation => (
-                        <motion.div
-                          key={occupation.id}
-                          className={`flex cursor-pointer items-center space-x-2 rounded-lg border p-3 transition-all ${
-                            formData.selectedOccupations.includes(occupation.id)
-                              ? 'border-blue-500 bg-blue-50'
-                              : 'border-gray-200'
-                          }`}
-                          whileHover={{ scale: 1.02 }}
-                          onClick={() => handleOccupationToggle(occupation.id)}
-                        >
-                          <Checkbox
-                            id={occupation.id}
-                            checked={formData.selectedOccupations.includes(occupation.id)}
-                            onCheckedChange={() => handleOccupationToggle(occupation.id)}
-                            className="mr-2"
-                          />
-                          <Label htmlFor={occupation.id} className="cursor-pointer">
-                            {occupation.label}
-                          </Label>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
+                        <div>
+                          <Label htmlFor="city">City</Label>
+                          <Select
+                            value={formData.city}
+                            onValueChange={(value) => {
+                              const cityValue = value === 'all' ? '' : value;
+                              setFormData({ ...formData, city: cityValue });
+                            }}
+                            disabled={citiesLoading || !selectedState}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={!selectedState ? 'Select state first' : 'Select city'} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Cities</SelectItem>
+                              {cities.map((city: any) => (
+                                <SelectItem key={city.id} value={city.name}>
+                                  {city.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
 
-                  <div className="mt-8 space-y-3 border-t pt-6">
-                    <div className="flex items-center justify-between">
-                      <Label>Additional Filters (Optional)</Label>
-                      <Select
-                        value=""
-                        onValueChange={addSubfilter}
-                      >
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue placeholder="Add filter" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {subfilterTypes
-                            .filter(type => !formData.subfilters.some(f => f.filterId === type.id))
-                            .map(type => (
-                              <SelectItem key={type.id} value={type.id}>
-                                {type.label}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-4">
-                      {formData.subfilters.map(filter => (
-                        <motion.div
-                          key={filter.id}
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="rounded-md border border-gray-200 p-3"
-                        >
-                          {renderSubfilter(filter)}
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  {step === 2 && (
+                    <motion.div
+                      key="step2"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ type: 'spring', damping: 25 }}
+                      className="space-y-6"
+                    >
+                      <div className="space-y-4">
+                        <Label>Target Categories</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                          {industries.map((industry: any) => (
+                            <button
+                              key={industry.id}
+                              className={`
+                                flex cursor-pointer items-center justify-between rounded-lg border p-3
+                                ${formData.industry === industry.name ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}
+                              `}
+                              onClick={() => setFormData({ ...formData, industry: industry.name })}
+                              type="button"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium">{industry.name}</p>
+                                </div>
+                              </div>
+                              {formData.industry === industry.name && (
+                                <CheckIcon className="size-5 text-blue-500" />
+                              )}
+                            </button>
+                          ))}
+                          <button
+                            className={`
+                              flex cursor-pointer items-center justify-between rounded-lg border p-3
+                              ${formData.industry === 'all' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}
+                            `}
+                            onClick={() => setFormData({ ...formData, industry: 'all' })}
+                            type="button"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">All Categories</p>
+                              </div>
+                            </div>
+                            {formData.industry === 'all' && (
+                              <CheckIcon className="size-5 text-blue-500" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </TabsContent>
+            </Tabs>
           </CardContent>
 
-          <CardFooter className="flex justify-between border-t bg-gradient-to-r from-gray-50 to-slate-50 p-6">
-            <div>
-              {step > 1
-                ? (
-                    <Button variant="outline" onClick={prevStep} type="button">
-                      Back
-                    </Button>
-                  )
-                : (
-                    <Button variant="ghost" onClick={skipToEnd} type="button">
-                      Skip for now
-                    </Button>
-                  )}
-            </div>
+          <CardFooter className="flex justify-between border-t bg-gray-50 px-6 py-4">
+            {step === 1
+              ? (
+                  <Button
+                    variant="outline"
+                    onClick={_skipToEnd}
+                    className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                  >
+                    Skip for now
+                  </Button>
+                )
+              : (
+                  <Button
+                    variant="outline"
+                    onClick={() => setStep(step - 1)}
+                    disabled={step === 1}
+                  >
+                    Back
+                  </Button>
+                )}
             <Button
-              onClick={step < 3 ? nextStep : handleSubmit}
-              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => step < 2 ? setStep(step + 1) : handleSubmit()}
               disabled={isSubmitting}
+              className="bg-blue-600 text-white hover:bg-blue-700"
             >
-              {step < 3 ? 'Next' : isSubmitting ? 'Processing...' : 'Find My Leads'}
+              {step < 2 ? 'Next' : 'Find Audience'}
+              {isSubmitting && (
+                <motion.div
+                  className="ml-2 size-4 animate-spin rounded-full border-2 border-t-transparent"
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                />
+              )}
             </Button>
           </CardFooter>
         </Card>

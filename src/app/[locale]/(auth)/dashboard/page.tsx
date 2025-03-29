@@ -1,43 +1,137 @@
-/* eslint-disable jsx-a11y/anchor-is-valid */
+/* eslint-disable no-console */
 /* eslint-disable ts/no-use-before-define */
 /* eslint-disable unused-imports/no-unused-vars */
 'use client';
 
 import { useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
-import { BarChart3, CreditCard, SearchIcon, TrendingUp, Users } from 'lucide-react';
+import { SearchIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
+import { StripePaymentForm } from '@/components/StripePaymentForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogOverlay } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PreferencesForm } from '@/features/dashboard/PreferencesForm';
 import { TitleBar } from '@/features/dashboard/TitleBar';
 
-// Sample data structure
+// Update the lead data interface to match the required structure
 type Lead = {
   id: string;
   name: string;
   email: string;
-  phone: string;
+  phoneNumber: string;
   city: string;
   state: string;
   industry: string;
-  occupation: string;
+};
+
+// Define a type for the API response data
+type Contact = {
+  type: string;
+  value: string;
+  isPrimary: boolean;
+};
+
+type Tag = {
+  id: string;
+  name: string;
+  category: string;
+};
+
+type Company = {
+  id: string;
+  name: string;
+};
+
+type LeadApiData = {
+  id: string;
+  full_name: string;
+  contactInfo: Contact[];
+  tags: Tag[];
+  companies: Company[];
+};
+
+type ApiResponse = {
+  success: boolean;
+  data: LeadApiData[];
+  pagination: {
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  };
+  query: {
+    originalQuery: string;
+    expression: string;
+  };
+  userSelections?: {
+    state?: string;
+    city?: string;
+    industry?: string;
+  };
 };
 
 const DashboardPage = (props: { params: { locale: string } }) => {
   const { isLoaded, user } = useUser();
   const router = useRouter();
   const { locale } = props.params;
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([
+    // Sample data that can be replaced with API data
+    {
+      id: 'lead-1',
+      name: 'Rahul Sharma',
+      email: 'r***a@example.com',
+      phoneNumber: '+91 98***4210',
+      city: 'Mumbai',
+      state: 'Maharashtra',
+      industry: 'Technology',
+    },
+    {
+      id: 'lead-2',
+      name: 'Priya Patel',
+      email: 'p***l@example.com',
+      phoneNumber: '+91 87***3310',
+      city: 'Bangalore',
+      state: 'Karnataka',
+      industry: 'Healthcare',
+    },
+    // Add more sample data as needed
+  ]);
   const [userPreferences, setUserPreferences] = useState<any>(null);
   const [showPreferencesForm, setShowPreferencesForm] = useState(false);
   const t = useTranslations('DashboardIndex');
+  const [isLoading, setIsLoading] = useState(true);
+  const [usingApiResults, setUsingApiResults] = useState(false);
+  const [apiQuery, setApiQuery] = useState('');
+  const [totalResults, setTotalResults] = useState(0);
+  const [selectedContactCount, setSelectedContactCount] = useState<string>('100');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // Define setSampleLeads BEFORE any useEffect that calls it
+  const setSampleLeads = () => {
+    // Create sample leads when no API data is available
+    const sampleLeads: Lead[] = Array.from({ length: 10 }, (_, index) => ({
+      id: `sample-${index + 1}`,
+      name: getSampleName(index),
+      email: getSampleEmail(index),
+      phoneNumber: getSamplePhone(),
+      city: ['Mumbai', 'Delhi', 'Bangalore', 'Pune', 'Chennai'][index % 5] || 'Mumbai',
+      state: ['Maharashtra', 'Delhi', 'Karnataka', 'Maharashtra', 'Tamil Nadu'][index % 5] || 'Maharashtra',
+      industry: ['Software Engineer', 'Healthcare', 'Finance', 'Education', 'Retail'][index % 5] || 'Technology',
+    }));
+
+    setLeads(sampleLeads);
+    setUsingApiResults(false);
+    setApiQuery('Sample data - no query performed');
+    setTotalResults(sampleLeads.length);
+  };
 
   // Load user preferences
   useEffect(() => {
@@ -49,13 +143,80 @@ const DashboardPage = (props: { params: { locale: string } }) => {
     }
   }, []);
 
-  // Generate leads based on preferences
+  // Combined effect that handles both API and preference-based data
   useEffect(() => {
-    const sampleLeads = userPreferences
-      ? generatePreferenceBasedLeads(userPreferences)
-      : generateGenericLeads();
-    setLeads(sampleLeads);
-  }, [userPreferences]);
+    const storedResults = localStorage.getItem('lead-query-results');
+
+    if (storedResults) {
+      try {
+        setIsLoading(true);
+
+        const results = JSON.parse(storedResults) as ApiResponse;
+
+        if (results.success && results.data && results.data.length > 0) {
+          // Transform API data to match our Lead type
+          const transformedLeads = results.data.map((person) => {
+            // Find primary email and phone
+            const primaryEmail = person.contactInfo.find(
+              contact => contact.type === 'email' && contact.isPrimary,
+            )?.value || '';
+
+            const primaryPhone = person.contactInfo.find(
+              contact => (contact.type === 'mobile' || contact.type === 'phone') && contact.isPrimary,
+            )?.value || '';
+
+            // Extract city and state from tags
+            const cityTag = person.tags.find(tag => tag.category === 'City');
+            const stateTag = person.tags.find(tag => tag.category === 'State');
+
+            // Use selected filters from the query as fallbacks
+            const city = cityTag?.name || results.userSelections?.city || '';
+            const state = stateTag?.name || results.userSelections?.state || '';
+
+            // Extract industry from tags
+            const industryTag = person.tags.find(tag => tag.category === 'Industry');
+            const industry = industryTag?.name || results.userSelections?.industry || '';
+
+            return {
+              id: person.id,
+              name: person.full_name,
+              email: maskEmail(primaryEmail),
+              phoneNumber: maskPhone(primaryPhone),
+              city,
+              state,
+              industry,
+            };
+          });
+
+          setLeads(transformedLeads);
+
+          // Set query information
+          setApiQuery(results.query?.expression || '');
+          setTotalResults(results.pagination?.total || 0);
+          setUsingApiResults(true);
+        } else {
+          // If stored results don't have data, load sample leads
+          setSampleLeads();
+        }
+      } catch (error) {
+        console.error('Error parsing stored results:', error);
+        setSampleLeads();
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // No stored results, load sample leads
+      setSampleLeads();
+    }
+
+    // If we're not using API results, generate based on preferences
+    if (!usingApiResults) {
+      const sampleLeads = userPreferences
+        ? generatePreferenceBasedLeads(userPreferences)
+        : generateGenericLeads();
+      setLeads(sampleLeads);
+    }
+  }, [userPreferences, usingApiResults]);
 
   // Handler for redirecting to lead query page
   const handleExploreLeads = () => {
@@ -68,11 +229,10 @@ const DashboardPage = (props: { params: { locale: string } }) => {
       id: `lead-${i + 1}`,
       name: getSampleName(i),
       email: maskEmail(getSampleEmail(i)),
-      phone: maskPhone(getSamplePhone()),
+      phoneNumber: maskPhone(getSamplePhone()),
       city: getRandomCity() || 'Unknown',
       state: getRandomState() || 'Unknown',
       industry: getRandomIndustry() || 'General',
-      occupation: getRandomOccupation() || 'Professional',
     }));
   };
 
@@ -82,11 +242,10 @@ const DashboardPage = (props: { params: { locale: string } }) => {
       id: `lead-${i + 1}`,
       name: getSampleName(i),
       email: maskEmail(getSampleEmail(i)),
-      phone: maskPhone(getSamplePhone()),
+      phoneNumber: maskPhone(getSamplePhone()),
       city: preferences.city || getRandomCity() || 'Unknown',
       state: preferences.state || getRandomState() || 'Unknown',
       industry: (preferences.industry ? getIndustryLabel(preferences.industry) : getRandomIndustry()) || 'General',
-      occupation: getRandomFromArray(preferences.selectedOccupations) || 'Professional',
     }));
   };
 
@@ -102,15 +261,156 @@ const DashboardPage = (props: { params: { locale: string } }) => {
     setShowPreferencesForm(true);
   };
 
+  // Handle purchase button click
+  const handlePurchase = () => {
+    console.log('Purchase initiated for', selectedContactCount, 'contacts');
+    setShowPaymentModal(true);
+  };
+
   return (
-    <>
+    <div className="container mx-auto space-y-8 pb-16 pt-8">
       <TitleBar
         title={t('title_bar')}
-        description={t.rich('title_bar_description', {
-          default: 'Manage your leads and account',
-        })}
+        description={t('title_bar_description')}
       />
 
+      {/* Grid layout for side-by-side content */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Table content - takes up 2/3 of space */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Your Target Audience</CardTitle>
+              <CardDescription>
+                {usingApiResults
+                  ? `Showing ${leads.length} of ${totalResults} results from your search`
+                  : 'Sample audience data based on your preferences'}
+              </CardDescription>
+            </div>
+
+            <Button
+              onClick={handleExploreLeads}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <SearchIcon className="mr-2 size-4" />
+              New Search
+            </Button>
+          </CardHeader>
+
+          <CardContent>
+            {isLoading
+              ? (
+                  <div className="flex h-40 items-center justify-center">
+                    <div className="text-center">
+                      <div className="mx-auto mb-2 size-12 animate-spin rounded-full border-4 border-blue-400 border-t-transparent"></div>
+                      <p>Loading leads...</p>
+                    </div>
+                  </div>
+                )
+              : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader className="bg-gray-50">
+                        <TableRow>
+                          <TableHead className="font-medium">Name</TableHead>
+                          <TableHead className="font-medium">Email</TableHead>
+                          <TableHead className="font-medium">Phone Number</TableHead>
+                          <TableHead className="font-medium">City</TableHead>
+                          <TableHead className="font-medium">State</TableHead>
+                          <TableHead className="font-medium">Industry</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {leads.map(lead => (
+                          <TableRow key={lead.id} className="hover:bg-blue-50/30">
+                            <TableCell className="font-medium">{lead.name}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                {lead.email}
+                                <Badge variant="outline" className="ml-1 bg-blue-50 text-xs text-blue-700">Masked</Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                {lead.phoneNumber}
+                                <Badge variant="outline" className="ml-1 bg-blue-50 text-xs text-blue-700">Masked</Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell>{lead.city}</TableCell>
+                            <TableCell>{lead.state}</TableCell>
+                            <TableCell>{lead.industry}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+          </CardContent>
+        </Card>
+
+        {/* Purchase section - takes up 1/3 of space */}
+        <Card className="h-fit lg:sticky lg:top-4">
+          <CardHeader>
+            <CardTitle>Access Complete Contact Data</CardTitle>
+            <CardDescription>
+              You're viewing limited results from your search with masked contact information.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Information about purchase and data delivery */}
+            <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm">
+              <h3 className="mb-1 font-semibold text-yellow-800">Access Complete Contact Data</h3>
+              <p className="text-yellow-700">
+                You're viewing limited results from your search with masked contact information.
+                Purchase full access to see complete contact details for your target audience.
+                Data will be sent to
+                {' '}
+                <span className="font-bold">{user?.primaryEmailAddress?.emailAddress}</span>
+                .
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lead-count">Number of contacts to purchase</Label>
+              <Select
+                value={selectedContactCount}
+                onValueChange={value => setSelectedContactCount(value)}
+              >
+                <SelectTrigger id="lead-count" className="w-full">
+                  <SelectValue placeholder="Select amount" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="100">100 contacts</SelectItem>
+                  <SelectItem value="500">500 contacts</SelectItem>
+                  <SelectItem value="1000">1,000 contacts</SelectItem>
+                  <SelectItem value="2000">2,000 contacts</SelectItem>
+                  <SelectItem value="5000">5,000 contacts</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="rounded-lg bg-gray-50 p-4">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-gray-900">Price:</div>
+                <div className="text-xl font-bold">
+                  ₹
+                  {Number.parseInt(selectedContactCount, 10) * 2}
+                </div>
+              </div>
+            </div>
+
+            <Button
+              onClick={handlePurchase}
+              className="w-full bg-blue-600 text-white hover:bg-blue-700"
+              disabled={selectedContactCount === '0'}
+            >
+              Purchase Contacts
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Preferences form modal - don't move this */}
       {showPreferencesForm && (
         <motion.div
           className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 backdrop-blur-sm"
@@ -141,377 +441,26 @@ const DashboardPage = (props: { params: { locale: string } }) => {
         </motion.div>
       )}
 
-      <div className="container mx-auto space-y-8 p-6">
-        {/* Dashboard Overview Section */}
-        <section className="grid grid-cols-1 gap-6 md:grid-cols-4">
-          {/* Credits Card */}
-          <Card className="relative overflow-hidden border-blue-200 md:col-span-2">
-            <div className="absolute -right-12 -top-12 size-40 rounded-full bg-gradient-to-br from-blue-400/10 to-indigo-400/20" />
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xl font-semibold text-blue-800">Available Credits</CardTitle>
-              <CardDescription>Use credits to unlock full lead data</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-baseline space-x-2">
-                <span className="text-5xl font-bold text-blue-700">100</span>
-                <span className="text-sm text-blue-600">credits</span>
-              </div>
-              <Progress value={65} className="mt-4 h-2 bg-blue-100" indicatorClassName="bg-blue-600" />
-              <div className="mt-2 flex justify-between text-sm">
-                <span className="text-gray-500">65% remaining</span>
-                <span className="text-blue-600 hover:text-blue-800 hover:underline">
-                  <a href="#">View usage history</a>
-                </span>
-              </div>
-            </CardContent>
-            <CardFooter className="bg-gradient-to-r from-white to-blue-50">
-              <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-                <CreditCard className="mr-2 size-4" />
-                Top Up Credits
-              </Button>
-            </CardFooter>
-          </Card>
-
-          {/* Quick Stats */}
-          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium text-blue-800">Leads Unlocked</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-baseline justify-between">
-                <div className="flex items-baseline space-x-1">
-                  <span className="text-3xl font-bold text-blue-700">12</span>
-                  <span className="text-sm text-blue-600">leads</span>
-                </div>
-                <Badge className="bg-blue-600">+5 this week</Badge>
-              </div>
-              <div className="mt-4 flex items-center text-sm">
-                <TrendingUp className="mr-1 size-4 text-green-500" />
-                <span className="text-green-600">22% increase since last month</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-medium text-blue-800">Avg. Response Rate</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-baseline justify-between">
-                <div className="flex items-baseline space-x-1">
-                  <span className="text-3xl font-bold text-blue-700">37%</span>
-                </div>
-                <BarChart3 className="size-5 text-blue-600" />
-              </div>
-              <div className="mt-4 flex items-center text-sm">
-                <Users className="mr-1 size-4 text-blue-500" />
-                <span className="text-blue-600">Based on industry benchmark data</span>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Explore Leads Section */}
-        <Card className="overflow-hidden border-b-4 border-indigo-600 bg-gradient-to-br from-slate-50 via-white to-blue-50 shadow-lg">
-          <div className="flex flex-col md:flex-row">
-            <div className="p-6 md:w-3/5">
-              <div className="mb-3 inline-block rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium text-indigo-800">
-                Lead Discovery
-              </div>
-              <h2 className="mb-2 text-3xl font-bold tracking-tight text-gray-900">Find Your Ideal Prospects</h2>
-              <p className="mb-4 text-lg text-gray-600">
-                Define your target audience with precise filters and unlock high-quality leads that match your exact criteria.
-              </p>
-              <div className="space-y-3">
-                <div className="flex items-start">
-                  <div className="mr-2 rounded-full bg-green-100 p-1">
-                    <svg className="size-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <p className="text-sm text-gray-600">Set location, industry, and role-specific filters</p>
-                </div>
-                <div className="flex items-start">
-                  <div className="mr-2 rounded-full bg-green-100 p-1">
-                    <svg className="size-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <p className="text-sm text-gray-600">Access complete verified contact information</p>
-                </div>
-                <div className="flex items-start">
-                  <div className="mr-2 rounded-full bg-green-100 p-1">
-                    <svg className="size-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <p className="text-sm text-gray-600">Get AI-enriched insights about your prospects</p>
-                </div>
-              </div>
-              <Button
-                onClick={handleExploreLeads}
-                className="mt-6 bg-gradient-to-r from-indigo-600 via-blue-600 to-blue-500 px-6 py-3 text-lg font-semibold text-white hover:shadow-lg"
-                size="lg"
-              >
-                <SearchIcon className="mr-2 size-5" />
-                Discover Your Target Leads
-              </Button>
-            </div>
-            <div className="bg-gradient-to-br from-indigo-600 to-blue-500 p-6 text-white md:w-2/5">
-              <h3 className="mb-3 font-medium">Why Customize Your Lead Search?</h3>
-              <ul className="space-y-3">
-                <li className="flex items-center gap-2">
-                  <div className="rounded-full bg-white/20 p-1">
-                    <svg className="size-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <span className="text-sm">3x higher conversion rates with targeted leads</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="rounded-full bg-white/20 p-1">
-                    <svg className="size-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <span className="text-sm">Save hours on manual research and validation</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="rounded-full bg-white/20 p-1">
-                    <svg className="size-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <span className="text-sm">Get weekly recommendations based on your activity</span>
-                </li>
-              </ul>
-              <div className="mt-6 rounded-lg bg-white/10 p-3 text-center">
-                <p className="text-sm font-medium">Customize search criteria to find your perfect leads!</p>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Lead data table - kept from original implementation but improved styling */}
-        <Card className="border border-gray-200 shadow-md">
-          <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-xl text-gray-800">Preview Leads</CardTitle>
-                <CardDescription>
-                  {userPreferences
-                    ? (
-                        <span className="text-gray-600">
-                          Based on your preferences:
-                          {' '}
-                          {getStateLabel(userPreferences?.state)}
-                          {userPreferences?.city ? `, ${getCityLabel(userPreferences?.city)}` : ''}
-                          {userPreferences?.industry ? `, ${getIndustryLabel(userPreferences?.industry)}` : ''}
-                        </span>
-                      )
-                    : (
-                        <span className="text-gray-600">Sample leads from across India</span>
-                      )}
-                </CardDescription>
-              </div>
-              <Button variant="outline" onClick={handleShowPreferencesForm} className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700">
-                Adjust Preferences
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="px-0">
-            <Table>
-              <TableHeader className="bg-gray-50">
-                <TableRow>
-                  <TableHead className="font-medium">Name</TableHead>
-                  <TableHead className="font-medium">Contact</TableHead>
-                  <TableHead className="font-medium">Location</TableHead>
-                  <TableHead className="font-medium">Industry</TableHead>
-                  <TableHead className="font-medium">Occupation</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {leads.map(lead => (
-                  <TableRow key={lead.id} className="hover:bg-blue-50/30">
-                    <TableCell className="font-medium">{lead.name}</TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div>
-                          {lead.email}
-                          {' '}
-                          <Badge variant="outline" className="ml-1 bg-blue-50 text-xs text-blue-700">Masked</Badge>
-                        </div>
-                        <div>
-                          {lead.phone}
-                          {' '}
-                          <Badge variant="outline" className="ml-1 bg-blue-50 text-xs text-blue-700">Masked</Badge>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {lead.city}
-                      ,
-                      {' '}
-                      {lead.state}
-                    </TableCell>
-                    <TableCell>{lead.industry}</TableCell>
-                    <TableCell>{lead.occupation}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-          <CardFooter className="justify-between border-t bg-gray-50 px-6 py-4">
-            <p className="text-sm text-gray-500">
-              Showing 5 of 1,500+ leads matching your criteria
-            </p>
-            <Button onClick={handleExploreLeads} className="bg-blue-600 hover:bg-blue-700">
-              See More Leads
-            </Button>
-          </CardFooter>
-        </Card>
-
-        {/* Credit Packages */}
-        <Card className="border-t-4 border-t-indigo-500 shadow-md">
-          <CardHeader>
-            <CardTitle className="text-2xl text-gray-800">Unlock More Leads with Credits</CardTitle>
-            <CardDescription>Choose a package that fits your business needs</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-              <Card className="border border-gray-200 transition-all duration-200 hover:border-blue-300 hover:shadow-md">
-                <CardHeader className="bg-gradient-to-b from-blue-50 to-white pb-2">
-                  <CardTitle className="text-lg text-blue-800">Starter</CardTitle>
-                  <CardDescription>Perfect for small businesses</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="mb-4 flex items-baseline">
-                    <span className="text-3xl font-bold text-gray-900">₹999</span>
-                    <span className="ml-1 text-gray-500">/one-time</span>
-                  </div>
-                  <ul className="mb-6 space-y-2 text-sm text-gray-600">
-                    <li className="flex items-center">
-                      <svg className="mr-2 size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      100 lead credits
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="mr-2 size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      Export to CSV
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="mr-2 size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      Basic filtering
-                    </li>
-                  </ul>
-                </CardContent>
-                <CardFooter className="bg-gradient-to-b from-white to-gray-50 pt-0">
-                  <Button className="w-full" variant="outline">
-                    Buy Now
-                  </Button>
-                </CardFooter>
-              </Card>
-
-              <Card className="relative border-2 border-blue-400 shadow-md transition-all duration-200 hover:shadow-lg">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-xs font-medium text-white">
-                  MOST POPULAR
-                </div>
-                <CardHeader className="bg-gradient-to-b from-blue-50 to-white pb-2">
-                  <CardTitle className="text-lg text-blue-800">Growth</CardTitle>
-                  <CardDescription>For growing teams</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="mb-4 flex items-baseline">
-                    <span className="text-3xl font-bold text-gray-900">₹2,499</span>
-                    <span className="ml-1 text-gray-500">/one-time</span>
-                  </div>
-                  <ul className="mb-6 space-y-2 text-sm text-gray-600">
-                    <li className="flex items-center">
-                      <svg className="mr-2 size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      300 lead credits
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="mr-2 size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      Advanced filtering
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="mr-2 size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      Weekly new leads
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="mr-2 size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      Email & phone verified
-                    </li>
-                  </ul>
-                </CardContent>
-                <CardFooter className="bg-gradient-to-b from-white to-gray-50 pt-0">
-                  <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                    Buy Now
-                  </Button>
-                </CardFooter>
-              </Card>
-
-              <Card className="border border-gray-200 transition-all duration-200 hover:border-blue-300 hover:shadow-md">
-                <CardHeader className="bg-gradient-to-b from-blue-50 to-white pb-2">
-                  <CardTitle className="text-lg text-blue-800">Enterprise</CardTitle>
-                  <CardDescription>For large teams</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <div className="mb-4 flex items-baseline">
-                    <span className="text-3xl font-bold text-gray-900">₹5,999</span>
-                    <span className="ml-1 text-gray-500">/one-time</span>
-                  </div>
-                  <ul className="mb-6 space-y-2 text-sm text-gray-600">
-                    <li className="flex items-center">
-                      <svg className="mr-2 size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      1000 lead credits
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="mr-2 size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      Premium filtering
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="mr-2 size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      CRM integration
-                    </li>
-                    <li className="flex items-center">
-                      <svg className="mr-2 size-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      Priority support
-                    </li>
-                  </ul>
-                </CardContent>
-                <CardFooter className="bg-gradient-to-b from-white to-gray-50 pt-0">
-                  <Button className="w-full" variant="outline">
-                    Contact Sales
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </>
+      {showPaymentModal && (
+        <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+          <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
+          <DialogContent className="sm:max-w-md">
+            <StripePaymentForm
+              contactCount={Number.parseInt(selectedContactCount, 10)}
+              onSuccess={() => {
+                console.log('Payment completed successfully, contacts purchased:', selectedContactCount);
+                setShowPaymentModal(false);
+                // Show success message and grant access to contacts
+              }}
+              onClose={() => {
+                console.log('Payment modal closed by user');
+                setShowPaymentModal(false);
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 };
 
@@ -627,20 +576,29 @@ const getSamplePhone = (): string => {
 
 // Masking functions
 const maskEmail = (email: string): string => {
-  const parts = email.split('@');
-  if (parts.length !== 2) {
+  if (!email) {
+    return '';
+  }
+  const [username, domain] = email.split('@');
+  if (!username || !domain) {
     return email;
-  } // Return original if not a valid email
+  }
 
-  const username = parts[0];
-  const domain = parts[1];
   const maskedUsername = `${username.charAt(0)}***${username.charAt(username.length - 1)}`;
   return `${maskedUsername}@${domain}`;
 };
 
 const maskPhone = (phone: string): string => {
-  // Assuming format like "+91 9876543210"
-  return `${phone.substring(0, 4)} ****${phone.substring(phone.length - 4)}`;
+  if (!phone) {
+    return '';
+  }
+  if (phone.length < 6) {
+    return phone;
+  }
+
+  const visiblePart = phone.slice(-4);
+  const prefix = phone.startsWith('+') ? '+91 ' : '';
+  return `${prefix}***${visiblePart}`;
 };
 
 export default DashboardPage;

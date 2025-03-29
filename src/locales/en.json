@@ -18,8 +18,8 @@
   },
   "Hero": {
     "follow_twitter": "Follow @Ixartz on Twitter",
-    "title": "Find your <important>perfect prospects</important> with <ai>AI-powered</ai> lead intelligence",
-    "description": "Find your ideal prospects with our AI-powered lead generation platform. Specify your criteria and unlock actionable business data tailored to your exact needs.",
+    "title": "Finding your  <important>perfect audience </important>? Simply ask",
+    "description": "Describe your ideal audience. We'll find them across platforms.",
     "primary_button": "Get Started",
     "secondary_button": "Star on GitHub"
   },
@@ -28,20 +28,20 @@
   },
   "Features": {
     "section_subtitle": "Features",
-    "section_title": "Powerful Lead Generation Tools At Your Fingertips",
-    "section_description": "Our AI-powered platform delivers quality leads tailored to your exact specifications, helping you connect with the right prospects and grow your business.",
-    "feature1_title": "Advanced Targeting",
-    "feature1_description": "Pinpoint your ideal customers with precision using demographic, firmographic, and behavioral parameters that matter to your business.",
-    "feature2_title": "Real-time Data",
-    "feature2_description": "Access fresh, up-to-date lead information that reflects the current market landscape, ensuring your outreach is always timely and relevant.",
-    "feature3_title": "AI Enrichment",
-    "feature3_description": "Leverage our AI technology to automatically enhance lead profiles with additional insights, contact details, and engagement signals.",
-    "feature4_title": "Custom Filters",
-    "feature4_description": "Create personalized search criteria to narrow down your prospect pool exactly how you want, focusing only on leads that match your specific requirements.",
-    "feature5_title": "Export Options",
-    "feature5_description": "Seamlessly download your lead data in multiple formats compatible with your CRM, email marketing tools, and other business systems.",
+    "section_title": "Powerful Custom Audience Tools At Your Fingertips",
+    "section_description": "Our AI-powered platform identifies your ideal custom audience tailored to your exact specifications, helping you connect with the right customers and grow your business.",
+    "feature1_title": "AI-Powered Audience Intelligence",
+    "feature1_description": "Our proprietary algorithm analyzes digital footprints across platforms, while our pattern recognition technology identifies behavioral similarities to generate your perfect target audience. Your ideal audience has patterns. Our AI spots them. Your campaigns convert them.",
+    "feature2_title": "Intuitive Question Interface",
+    "feature2_description": "Simple 5-question discovery process that helps you find your perfect audience in minutes, not months. Quickly define your ideal customer parameters and get immediate results you can act on.",
+    "feature3_title": "Audience Blueprint Creation",
+    "feature3_description": "Generate custom lookalike audiences based on your best-performing customer segments. Create exportable audience profiles ready for multiple campaigns across different platforms.",
+    "feature4_title": "ROI Enhancement",
+    "feature4_description": "The eventual outcome for you is ad spend optimization. We help you by providing a custom audience for budget allocation across platforms, ensuring your marketing dollars work harder and deliver measurable results.",
+    "feature5_title": "Scaling Solutions",
+    "feature5_description": "Audience expansion capabilities that grow with your business. Multi-product audience differentiation lets you target distinct segments, while our enterprise-level audience management tools support even the most complex marketing operations.",
     "feature6_title": "API Access",
-    "feature6_description": "Integrate our powerful lead generation capabilities directly into your existing workflow with our developer-friendly API."
+    "feature6_description": "Integrate our custom audience discovery tools directly into your existing workflow with our developer-friendly API."
   },
   "Pricing": {
     "section_subtitle": "Pricing",
@@ -70,20 +70,20 @@
     "answer1": "Our lead data boasts over 95% accuracy, thanks to our proprietary AI verification system and regular database updates. We continuously verify contact information and company details to ensure you always work with reliable, up-to-date information.",
 
     "question2": "How many leads can I access per month?",
-    "answer2": "The number of leads you can access depends on your subscription plan. Our Basic plan offers 500 leads monthly, while our Premium and Enterprise plans provide 2,000 and unlimited leads respectively. Custom volume options are available for specific business needs.",
+    "answer2": "Our platform operates on a flexible, prepaid credit system that gives you complete control over your lead acquisition. Here's how it works:\n\n1. **Credit Purchases**: You can purchase lead credits in advance, which allows you to request leads as your business needs evolve. There are no fixed monthly limits – you decide how many leads you want to access based on the credits you buy.\n\n2. **Flexible Requesting**: Once you've purchased credits, you can request leads at your own pace. Each lead costs a specific number of credits, and you can spread out your lead requests throughout the month or use them quickly, depending on your sales and marketing strategy.\n\n3. **Credit Rollover**: Your purchased credits do not expire, giving you the flexibility to use them when it makes the most sense for your business.\n\n4. **Enterprise Plans**: We do offer enterprise-level plans which are tailored to fit your company's needs.\n\n**Example**: If you buy a package of 100 credits, you might use 10 credits to request 10 high-quality leads this month, and save the remaining credits for future use.",
 
     "question3": "What industries do you cover?",
     "answer3": "Our platform covers leads across all major industries including technology, healthcare, finance, education, retail, manufacturing, and many more. Our extensive database allows you to filter prospects by specific industry classifications to find exactly what you need.",
 
     "question4": "Can I integrate your data with my CRM?",
-    "answer4": "Absolutely! We offer seamless integration with popular CRM platforms including Salesforce, HubSpot, Zoho, and many others. Our API also allows for custom integrations with virtually any system your team uses.",
+    "answer4": "You will be able to soon. We're working on offering you seamless integration with popular CRM platforms, including Salesforce, HubSpot, Zoho, and many others. Our API will allow for custom integrations with virtually any system your team uses.",
 
     "question5": "How is your pricing structured?",
     "answer5": "Our pricing is based on the number of leads you need and additional enrichment features. We offer monthly and annual subscription plans with significant discounts for annual commitments. Custom enterprise pricing is available for high-volume requirements."
   },
   "CTA": {
     "title": "Ready to supercharge your prospecting with bluGoat?",
-    "description": "Join thousands of businesses that trust bluGoat for high-quality, targeted lead data that drives real business growth.",
+    "description": "Join thousands of businesses that trust bluGoat for high-quality, custom audience data that drives real business growth.",
     "button_text": "Start Generating Leads"
   },
   "Footer": {
@@ -210,5 +210,7 @@
     "status": "Status",
     "leads_purchased": "Leads",
     "credits_used": "Credits Used"
-  }
+  },
+  "lead_generation_heading": "Find Your Perfect Target Audience",
+  "lead_search_button": "Discover Your Audience"
 }
