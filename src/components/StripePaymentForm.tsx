@@ -204,7 +204,6 @@ export const StripePaymentForm = ({
 // Inner checkout form with proper type definitions
 function CheckoutForm({
   contactCount,
-  onSuccess,
   onClose,
   handleSubmit,
 }: {
