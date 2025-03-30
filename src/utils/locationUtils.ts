@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 
@@ -173,6 +174,17 @@ const industriesData: Industry[] = [
   { id: 'HNIs', name: 'HNI' },
 ];
 
+// Add an interface for the API response items
+type IndustryItem = {
+  id?: string;
+  _id?: string;
+  tagId?: string;
+  name?: string;
+  title?: string;
+  label?: string;
+  [key: string]: any; // Allow other properties
+};
+
 // Hook for states - use static data
 export function useStates() {
   const [loading, setLoading] = useState(true);
@@ -273,8 +285,8 @@ export function useIndustries() {
         console.log('Successfully fetched industries:', data);
         console.log('Industries data structure:', JSON.stringify(data, null, 2));
 
-        // You may need to transform the data:
-        const transformedData = (data.data || []).map(item => ({
+        // Then in the transformation code:
+        const transformedData = (data.data || []).map((item: IndustryItem) => ({
           id: item.id || item._id || item.tagId,
           name: item.name || item.title || item.label,
         }));

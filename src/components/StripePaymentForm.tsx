@@ -1,3 +1,5 @@
+/* eslint-disable react/no-children-map */
+/* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable no-console */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
 /* eslint-disable jsx-a11y/no-noninteractive-element-interactions */
@@ -23,7 +25,8 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 
 // Credit package options
 const CREDIT_PACKAGES = [
-  { id: 'mini', credits: 50, contacts: 50, price: 10000, color: 'gray' }, // ₹100 for 50 credits
+  { id: 'test', credits: 1, contacts: 1, price: 200, color: 'gray' }, // ₹2 for 1 credit (test option)
+  // { id: 'mini', credits: 50, contacts: 50, price: 10000, color: 'gray' }, // ₹100 for 50 credits
   { id: 'small', credits: 250, contacts: 250, price: 50000, color: 'blue' }, // ₹500 for 250 credits
   { id: 'medium', credits: 500, contacts: 500, price: 100000, color: 'green' }, // ₹1,000 for 500 credits
   { id: 'large', credits: 1000, contacts: 1000, price: 200000, color: 'purple' }, // ₹2,000 for 1000 credits
@@ -73,15 +76,27 @@ const appearance = {
   },
 };
 
-// Define props type separately
+// Define props type with transaction ID parameter and contactCount
 type StripePaymentFormProps = {
-  onSuccess: () => void;
+  onSuccess: (transactionId?: string) => void;
   onClose: () => void;
+  contactCount?: number; // Add contactCount as an optional prop
 };
 
 // Use the type with a standard function declaration
-export const StripePaymentForm = ({ onSuccess, onClose }: StripePaymentFormProps) => {
-  const [selectedPackage, setSelectedPackage] = useState(CREDIT_PACKAGES[1]); // Default to medium package
+export const StripePaymentForm = ({ onSuccess, onClose, contactCount }: StripePaymentFormProps) => {
+  // Find the best matching package for the requested contact count
+  const findInitialPackage = () => {
+    if (!contactCount) {
+      return CREDIT_PACKAGES[1];
+    } // Default to small package
+
+    // Find the smallest package that covers the contact count
+    const matchingPackage = CREDIT_PACKAGES.find(pkg => pkg.contacts >= contactCount);
+    return matchingPackage || CREDIT_PACKAGES[CREDIT_PACKAGES.length - 1]; // Return matching or largest
+  };
+
+  const [selectedPackage, setSelectedPackage] = useState(findInitialPackage());
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -151,7 +166,7 @@ export const StripePaymentForm = ({ onSuccess, onClose }: StripePaymentFormProps
         const { paymentIntentId, timestamp } = JSON.parse(paymentSuccess);
         // Only use recent payments (within last 5 minutes)
         if (Date.now() - timestamp < 5 * 60 * 1000) {
-          onSuccess();
+          onSuccess(paymentIntentId);
           localStorage.removeItem('payment_success');
         }
       } catch (e) {
@@ -198,15 +213,19 @@ export const StripePaymentForm = ({ onSuccess, onClose }: StripePaymentFormProps
     } else {
       console.log('Payment completed');
       setPaymentStatus('success');
-      onSuccess();
+      onSuccess(undefined);
     }
   };
 
-  const getElementsOptions = () => {
+  const getElementsOptions = (): any => {
     if (clientSecret) {
-      return { clientSecret };
+      return {
+        clientSecret,
+        appearance,
+      };
     }
 
+    // Basic fallback options for testing
     return {
       mode: 'payment',
       amount: selectedPackage.price,
@@ -231,17 +250,10 @@ export const StripePaymentForm = ({ onSuccess, onClose }: StripePaymentFormProps
       <div className={cn('grid gap-2', className)}>
         {React.Children.map(children, (child) => {
           if (React.isValidElement(child)) {
-            console.log('Radio option:', child.props.value, 'isSelected:', child.props.value === value);
             return React.cloneElement(child, {
               checked: child.props.value === value,
-              onChange: (e) => {
-                console.log('Changing to:', child.props.value);
-                onValueChange(child.props.value);
-              },
-            } as React.HTMLAttributes<HTMLInputElement> & {
-              checked: boolean;
-              onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-            });
+              onChange: () => onValueChange(child.props.value),
+            } as any);
           }
           return child;
         })}
@@ -476,11 +488,10 @@ export const StripePaymentForm = ({ onSuccess, onClose }: StripePaymentFormProps
 // Inner checkout form
 function CheckoutForm({
   packageDetails,
-  onClose,
   handleSubmit,
 }: {
   packageDetails: typeof CREDIT_PACKAGES[0];
-  onSuccess: () => void;
+  onSuccess: (transactionId?: string) => void;
   onClose: () => void;
   handleSubmit: (e: React.FormEvent<HTMLFormElement>, stripe: any, elements: any) => Promise<void>;
 }) {

@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { authMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';

@@ -1,3 +1,4 @@
+/* eslint-disable react/no-children-map */
 /* eslint-disable react/no-clone-element */
 'use client';
 
@@ -26,7 +27,7 @@ export const RadioGroup: React.FC<RadioGroupProps> = ({
           return React.cloneElement(child, {
             checked: child.props.value === value,
             onChange: () => onValueChange(child.props.value),
-          });
+          } as React.InputHTMLAttributes<HTMLInputElement>);
         }
         return child;
       })}
