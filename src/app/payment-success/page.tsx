@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+/* eslint-disable tailwindcss/no-custom-classname */
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -12,12 +14,14 @@ export default function PaymentSuccessPage() {
       const params = new URLSearchParams(window.location.search);
       const paymentIntentId = params.get('payment_intent');
       const status = params.get('redirect_status');
+      const credits = params.get('credits');
 
-      console.log('Payment success page loaded:', { paymentIntentId, status });
+      console.log('Payment success page loaded:', { paymentIntentId, status, credits });
 
       if (status === 'succeeded') {
         localStorage.setItem('payment_success', JSON.stringify({
           paymentIntentId,
+          credits,
           timestamp: Date.now(),
         }));
       }

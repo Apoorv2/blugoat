@@ -42,6 +42,8 @@ export default authMiddleware({
     '/api/create-payment-intent',
     '/api/test',
     '/api/(.*)',
+    '/payment-success(.*)',
+    '/:locale/payment-success(.*)',
   ],
   beforeAuth: (req) => {
     // Run the intl middleware before auth

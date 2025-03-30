@@ -1,3 +1,4 @@
+/* eslint-disable unused-imports/no-unused-vars */
 'use client';
 
 import { CheckCircle } from 'lucide-react';
@@ -9,22 +10,26 @@ import { Button } from '@/components/ui/button';
 export default function PaymentSuccessPage({ params }: { params: { locale: string } }) {
   const router = useRouter();
   const [paymentIntent, setPaymentIntent] = useState<string | null>(null);
+  const [credits, setCredits] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    console.log('Localized payment success page loaded', { params });
-
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const paymentIntentId = params.get('payment_intent');
       const status = params.get('redirect_status');
+      const purchasedCredits = params.get('credits');
 
       setPaymentIntent(paymentIntentId);
+      if (purchasedCredits) {
+        setCredits(Number.parseInt(purchasedCredits, 10));
+      }
       setIsLoading(false);
 
       if (status === 'succeeded') {
         localStorage.setItem('payment_success', JSON.stringify({
           paymentIntentId,
+          credits: purchasedCredits,
           timestamp: Date.now(),
         }));
       }
@@ -47,7 +52,11 @@ export default function PaymentSuccessPage({ params }: { params: { locale: strin
         </h1>
 
         <p className="mb-6 text-center text-gray-600">
-          Payment successful! You've purchased 250 credits that have been added to your account and are ready to use.
+          Payment successful! You've purchased
+          {' '}
+          {credits || 'your'}
+          {' '}
+          credits that have been added to your account and are ready to use.
         </p>
 
         {paymentIntent && (
