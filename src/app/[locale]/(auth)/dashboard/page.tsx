@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-console */
 /* eslint-disable ts/no-use-before-define */
 /* eslint-disable unused-imports/no-unused-vars */
