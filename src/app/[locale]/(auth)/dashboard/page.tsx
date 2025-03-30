@@ -5,7 +5,7 @@
 
 import { useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
-import { SearchIcon } from 'lucide-react';
+import { MailSearch, SearchIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
@@ -113,6 +113,9 @@ const DashboardPage = (props: { params: { locale: string } }) => {
   const [totalResults, setTotalResults] = useState(0);
   const [selectedContactCount, setSelectedContactCount] = useState<string>('100');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [hasEmptyResults, setHasEmptyResults] = useState(false);
+  const [userCredits, setUserCredits] = useState(100);
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
 
   // Define setSampleLeads BEFORE any useEffect that calls it
   const setSampleLeads = () => {
@@ -146,13 +149,16 @@ const DashboardPage = (props: { params: { locale: string } }) => {
   // Combined effect that handles both API and preference-based data
   useEffect(() => {
     const storedResults = localStorage.getItem('lead-query-results');
+    setIsLoading(true);
 
     if (storedResults) {
       try {
-        setIsLoading(true);
-
         const results = JSON.parse(storedResults) as ApiResponse;
 
+        // Check if this was a real query (not just initial state)
+        const wasRealQuery = results.query?.expression || results.query;
+
+        // Check if we have actual results
         if (results.success && results.data && results.data.length > 0) {
           // Transform API data to match our Lead type
           const transformedLeads = results.data.map((person) => {
@@ -189,13 +195,19 @@ const DashboardPage = (props: { params: { locale: string } }) => {
           });
 
           setLeads(transformedLeads);
-
-          // Set query information
           setApiQuery(results.query?.expression || '');
           setTotalResults(results.pagination?.total || 0);
           setUsingApiResults(true);
+        } else if (wasRealQuery) {
+          // This is an empty result from a real query
+          setLeads([]);
+          setApiQuery(results.query?.expression || '');
+          setTotalResults(0);
+          setUsingApiResults(true);
+          // Add a flag to indicate empty results from a real query
+          setHasEmptyResults(true);
         } else {
-          // If stored results don't have data, load sample leads
+          // No real query was performed, use sample data
           setSampleLeads();
         }
       } catch (error) {
@@ -207,6 +219,7 @@ const DashboardPage = (props: { params: { locale: string } }) => {
     } else {
       // No stored results, load sample leads
       setSampleLeads();
+      setIsLoading(false);
     }
 
     // If we're not using API results, generate based on preferences
@@ -269,10 +282,32 @@ const DashboardPage = (props: { params: { locale: string } }) => {
 
   return (
     <div className="container mx-auto space-y-8 pb-16 pt-8">
-      <TitleBar
-        title={t('title_bar')}
-        description={t('title_bar_description')}
-      />
+      <div className="mb-4 flex items-center justify-between">
+        <TitleBar
+          title={t('title_bar')}
+          description={t('title_bar_description')}
+        />
+
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-full border bg-white px-4 py-2 shadow-sm">
+            <div className="rounded-full bg-blue-50 p-1">
+              <div className="size-5 text-blue-500">💎</div>
+            </div>
+            <div>
+              <span className="text-sm font-medium text-gray-500">Credits:</span>
+              <span className="ml-1 font-bold">{userCredits}</span>
+            </div>
+          </div>
+
+          <Button
+            onClick={() => setShowTopUpModal(true)}
+            className="bg-blue-600 text-white hover:bg-blue-700"
+            size="sm"
+          >
+            Top Up
+          </Button>
+        </div>
+      </div>
 
       {/* Grid layout for side-by-side content */}
       <div className="grid gap-6 lg:grid-cols-3">
@@ -280,11 +315,13 @@ const DashboardPage = (props: { params: { locale: string } }) => {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <CardTitle>Your Target Audience</CardTitle>
+              <CardTitle className="mb-2">Your Target Audience</CardTitle>
               <CardDescription>
-                {usingApiResults
-                  ? `Showing ${leads.length} of ${totalResults} results from your search`
-                  : 'Sample audience data based on your preferences'}
+                {hasEmptyResults
+                  ? 'No results found for your search audience'
+                  : usingApiResults
+                    ? `Showing ${leads.length} of ${totalResults} results from your search`
+                    : 'Sample audience data based on your preferences'}
               </CardDescription>
             </div>
 
@@ -307,107 +344,166 @@ const DashboardPage = (props: { params: { locale: string } }) => {
                     </div>
                   </div>
                 )
-              : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader className="bg-gray-50">
-                        <TableRow>
-                          <TableHead className="font-medium">Name</TableHead>
-                          <TableHead className="font-medium">Email</TableHead>
-                          <TableHead className="font-medium">Phone Number</TableHead>
-                          <TableHead className="font-medium">City</TableHead>
-                          <TableHead className="font-medium">State</TableHead>
-                          <TableHead className="font-medium">Industry</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {leads.map(lead => (
-                          <TableRow key={lead.id} className="hover:bg-blue-50/30">
-                            <TableCell className="font-medium">{lead.name}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                {lead.email}
-                                <Badge variant="outline" className="ml-1 bg-blue-50 text-xs text-blue-700">Masked</Badge>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                {lead.phoneNumber}
-                                <Badge variant="outline" className="ml-1 bg-blue-50 text-xs text-blue-700">Masked</Badge>
-                              </div>
-                            </TableCell>
-                            <TableCell>{lead.city}</TableCell>
-                            <TableCell>{lead.state}</TableCell>
-                            <TableCell>{lead.industry}</TableCell>
+              : hasEmptyResults
+                ? (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <div className="mb-6 rounded-full bg-blue-50 p-6">
+                        <MailSearch className="size-12 text-blue-500" />
+                      </div>
+                      <h3 className="mb-2 text-xl font-semibold">Sorry, we were not able to find your audience</h3>
+                      <p className="mb-6 max-w-md text-gray-600">
+                        Our system is still working to find matches for your query. We will inform you once we have what you're looking for.
+                      </p>
+                      <Button
+                        onClick={handleExploreLeads}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Try a New Search
+                      </Button>
+                    </div>
+                  )
+                : (
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader className="bg-gray-50">
+                          <TableRow>
+                            <TableHead className="font-medium">Name</TableHead>
+                            <TableHead className="font-medium">Email</TableHead>
+                            <TableHead className="font-medium">Phone Number</TableHead>
+                            <TableHead className="font-medium">City</TableHead>
+                            <TableHead className="font-medium">State</TableHead>
+                            <TableHead className="font-medium">Industry</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
+                        </TableHeader>
+                        <TableBody>
+                          {leads.map(lead => (
+                            <TableRow key={lead.id} className="hover:bg-blue-50/30">
+                              <TableCell className="font-medium">{lead.name}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center">
+                                  {lead.email}
+                                  <Badge variant="outline" className="ml-1 bg-blue-50 text-xs text-blue-700">Masked</Badge>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center">
+                                  {lead.phoneNumber}
+                                  <Badge variant="outline" className="ml-1 bg-blue-50 text-xs text-blue-700">Masked</Badge>
+                                </div>
+                              </TableCell>
+                              <TableCell>{lead.city}</TableCell>
+                              <TableCell>{lead.state}</TableCell>
+                              <TableCell>{lead.industry}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
           </CardContent>
         </Card>
 
-        {/* Purchase section - takes up 1/3 of space */}
-        <Card className="h-fit lg:sticky lg:top-4">
-          <CardHeader>
-            <CardTitle>Access Complete Contact Data</CardTitle>
-            <CardDescription>
-              You're viewing limited results from your search with masked contact information.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Information about purchase and data delivery */}
-            <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm">
-              <h3 className="mb-1 font-semibold text-yellow-800">Access Complete Contact Data</h3>
-              <p className="text-yellow-700">
+        {/* Right column content */}
+        <div className="flex flex-col gap-6">
+          {/* Remove the Credits card and keep only the Purchase section */}
+          <Card className="h-fit lg:sticky lg:top-4">
+            <CardHeader>
+              <CardTitle>Access Complete Contact Data</CardTitle>
+              <CardDescription>
                 You're viewing limited results from your search with masked contact information.
-                Purchase full access to see complete contact details for your target audience.
-                Data will be sent to
-                {' '}
-                <span className="font-bold">{user?.primaryEmailAddress?.emailAddress}</span>
-                .
-              </p>
-            </div>
+              </CardDescription>
+            </CardHeader>
 
-            <div className="space-y-2">
-              <Label htmlFor="lead-count">Number of contacts to purchase</Label>
-              <Select
-                value={selectedContactCount}
-                onValueChange={value => setSelectedContactCount(value)}
-              >
-                <SelectTrigger id="lead-count" className="w-full">
-                  <SelectValue placeholder="Select amount" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="100">100 contacts</SelectItem>
-                  <SelectItem value="500">500 contacts</SelectItem>
-                  <SelectItem value="1000">1,000 contacts</SelectItem>
-                  <SelectItem value="2000">2,000 contacts</SelectItem>
-                  <SelectItem value="5000">5,000 contacts</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="rounded-lg bg-gray-50 p-4">
+            {/* Information about purchase and data delivery */}
+            <div className="border-b px-6 pb-4">
               <div className="flex items-center justify-between">
-                <div className="text-sm font-medium text-gray-900">Price:</div>
-                <div className="text-xl font-bold">
-                  ₹
-                  {Number.parseInt(selectedContactCount, 10) * 2}
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Available Credits</p>
+                  <p className="text-2xl font-bold">{userCredits}</p>
                 </div>
+                <div className="rounded-full bg-blue-50 p-3">
+                  <div className="size-6 text-blue-500">💎</div>
+                </div>
+              </div>
+              <div className="mt-2">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className="h-full rounded-full bg-blue-500"
+                    style={{ width: `${Math.min(100, (userCredits / 100) * 100)}%` }}
+                  >
+                  </div>
+                </div>
+              </div>
+
+              {/* Add Top Up button */}
+              <div className="mt-3 text-right">
+                <Button
+                  onClick={() => setShowTopUpModal(true)}
+                  variant="outline"
+                  size="sm"
+                  className="text-blue-600 hover:bg-blue-50"
+                >
+                  <span className="mr-1">+</span>
+                  {' '}
+                  Top Up Credits
+                </Button>
               </div>
             </div>
 
-            <Button
-              onClick={handlePurchase}
-              className="w-full bg-blue-600 text-white hover:bg-blue-700"
-              disabled={selectedContactCount === '0'}
-            >
-              Purchase Contacts
-            </Button>
-          </CardContent>
-        </Card>
+            <CardContent className="space-y-6 pt-6">
+              <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm">
+                <h3 className="mb-1 font-semibold text-yellow-800">Access Complete Contact Data</h3>
+                <p className="text-yellow-700">
+                  You're viewing limited results from your search with masked contact information.
+                  Purchase full access to see complete contact details for your target audience.
+                  Data will be sent to
+                  {' '}
+                  <span className="font-bold">{user?.primaryEmailAddress?.emailAddress}</span>
+                  .
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="lead-count">Number of contacts to purchase</Label>
+                <Select
+                  value={selectedContactCount}
+                  onValueChange={value => setSelectedContactCount(value)}
+                >
+                  <SelectTrigger id="lead-count" className="w-full">
+                    <SelectValue placeholder="Select amount" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="100">100 contacts</SelectItem>
+                    <SelectItem value="500">500 contacts</SelectItem>
+                    <SelectItem value="1000">1,000 contacts</SelectItem>
+                    <SelectItem value="2000">2,000 contacts</SelectItem>
+                    <SelectItem value="5000">5,000 contacts</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="rounded-lg bg-gray-50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium text-gray-900">Credits Required:</div>
+                  <div className="text-xl font-bold">
+                    {Number.parseInt(selectedContactCount, 10)}
+                  </div>
+                </div>
+                <div className="mt-2 text-xs text-gray-500">
+                  1 contact = 1 credit
+                </div>
+              </div>
+
+              <Button
+                onClick={handlePurchase}
+                className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                disabled={selectedContactCount === '0'}
+              >
+                Purchase Contacts
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Preferences form modal - don't move this */}

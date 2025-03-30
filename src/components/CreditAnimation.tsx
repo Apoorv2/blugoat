@@ -73,7 +73,7 @@ export const CreditAnimation = ({ onComplete }: CreditAnimationProps) => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <h2 className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-3xl font-bold text-transparent">
+            <h2 className="bg-gradient-to-r from-indigo-500 to-cyan-400 bg-clip-text text-3xl font-bold text-transparent">
               Welcome to bluGoat AI
             </h2>
 
@@ -113,7 +113,7 @@ export const CreditAnimation = ({ onComplete }: CreditAnimationProps) => {
             <Button
               className={`mt-4 w-full transition-all duration-300 ${
                 isComplete
-                  ? 'bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90'
+                  ? 'bg-gradient-to-r from-indigo-500 to-cyan-400 text-white hover:opacity-90'
                   : 'bg-gray-200 text-gray-400'
               }`}
               onClick={handleButtonClick}

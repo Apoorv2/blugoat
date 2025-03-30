@@ -18,8 +18,8 @@
   },
   "Hero": {
     "follow_twitter": "Follow @Ixartz on Twitter",
-    "title": "Finding your  <important>perfect audience </important>? Simply ask",
-    "description": "Describe your ideal audience. We'll find them across platforms.",
+    "title": "Describe your <ai>ideal customer</ai>. We'll find them across platforms",
+    "description": "Custom audiences for Meta, Google, WhatsApp and more – just answer a few questions.",
     "primary_button": "Get Started",
     "secondary_button": "Star on GitHub"
   },
@@ -84,7 +84,7 @@
   "CTA": {
     "title": "Ready to supercharge your prospecting with bluGoat?",
     "description": "Join thousands of businesses that trust bluGoat for high-quality, custom audience data that drives real business growth.",
-    "button_text": "Start Generating Leads"
+    "button_text": "Start Exploring your Audience"
   },
   "Footer": {
     "product": "Product",

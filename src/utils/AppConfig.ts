@@ -6,7 +6,7 @@ const localePrefix: LocalePrefix = 'as-needed';
 
 // Simplify to English-only
 export const AppConfig = {
-  name: 'BlueGoat',
+  name: 'BluGoat',
   locales: [
     {
       id: 'en',
