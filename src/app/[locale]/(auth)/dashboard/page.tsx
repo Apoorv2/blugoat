@@ -21,6 +21,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { PreferencesForm } from '@/features/dashboard/PreferencesForm';
 import { TitleBar } from '@/features/dashboard/TitleBar';
 
+// Add these constants directly in the dashboard page, near the top with other constants
+const CONTACT_OPTIONS = [
+  { value: '50', label: '50 Contacts' },
+  { value: '250', label: '250 Contacts' },
+  { value: '500', label: '500 Contacts' },
+  { value: '1000', label: '1,000 Contacts' },
+  { value: '2500', label: '2,500 Contacts' },
+  { value: '5000', label: '5,000 Contacts' },
+];
+
 // Update the lead data interface to match the required structure
 type Lead = {
   id: string;
@@ -58,23 +68,27 @@ type LeadApiData = {
   companies: Company[];
 };
 
+// Update the ApiResponse type to match your actual API response
 type ApiResponse = {
   success: boolean;
   data: LeadApiData[];
-  pagination: {
+  meta: {
+    totalCount: number;
+    previewCount: number;
+    estimatedCost: number;
+    previouslySeen: number;
+    percentComplete: number;
+  };
+  // These might be missing in your response
+  pagination?: {
     total: number;
     page: number;
     pageSize: number;
     totalPages: number;
   };
-  query: {
+  query?: {
     originalQuery: string;
     expression: string;
-  };
-  userSelections?: {
-    state?: string;
-    city?: string;
-    industry?: string;
   };
 };
 
@@ -111,30 +125,11 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
   const [usingApiResults, setUsingApiResults] = useState(false);
   const [apiQuery, setApiQuery] = useState('');
   const [totalResults, setTotalResults] = useState(0);
-  const [selectedContactCount, setSelectedContactCount] = useState<string>('100');
+  const [selectedContactCount, setSelectedContactCount] = useState<string>('50');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [hasEmptyResults, setHasEmptyResults] = useState(false);
   const [userCredits, setUserCredits] = useState(100);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
-
-  // Define setSampleLeads BEFORE any useEffect that calls it
-  const setSampleLeads = () => {
-    // Create sample leads when no API data is available
-    const sampleLeads: Lead[] = Array.from({ length: 10 }, (_, index) => ({
-      id: `sample-${index + 1}`,
-      name: getSampleName(index),
-      email: getSampleEmail(index),
-      phoneNumber: getSamplePhone(),
-      city: ['Mumbai', 'Delhi', 'Bangalore', 'Pune', 'Chennai'][index % 5] || 'Mumbai',
-      state: ['Maharashtra', 'Delhi', 'Karnataka', 'Maharashtra', 'Tamil Nadu'][index % 5] || 'Maharashtra',
-      industry: ['Software Engineer', 'Healthcare', 'Finance', 'Education', 'Retail'][index % 5] || 'Technology',
-    }));
-
-    setLeads(sampleLeads);
-    setUsingApiResults(false);
-    setApiQuery('Sample data - no query performed');
-    setTotalResults(sampleLeads.length);
-  };
 
   // Load user preferences
   useEffect(() => {
@@ -146,7 +141,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     }
   }, []);
 
-  // Combined effect that handles both API and preference-based data
+  // Update the useEffect that processes the lead data
   useEffect(() => {
     const storedResults = localStorage.getItem('lead-query-results');
     setIsLoading(true);
@@ -155,10 +150,6 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
       try {
         const results = JSON.parse(storedResults) as ApiResponse;
 
-        // Check if this was a real query (not just initial state)
-        const wasRealQuery = results.query?.expression || results.query;
-
-        // Check if we have actual results
         if (results.success && results.data && results.data.length > 0) {
           // Transform API data to match our Lead type
           const transformedLeads = results.data.map((person) => {
@@ -176,12 +167,12 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
             const stateTag = person.tags.find(tag => tag.category === 'State');
 
             // Use selected filters from the query as fallbacks
-            const city = cityTag?.name || results.userSelections?.city || '';
-            const state = stateTag?.name || results.userSelections?.state || '';
+            const city = cityTag?.name || results.query?.city || '';
+            const state = stateTag?.name || results.query?.state || '';
 
             // Extract industry from tags
             const industryTag = person.tags.find(tag => tag.category === 'Industry');
-            const industry = industryTag?.name || results.userSelections?.industry || '';
+            const industry = industryTag?.name || results.query?.industry || '';
 
             return {
               id: person.id,
@@ -196,40 +187,30 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
 
           setLeads(transformedLeads);
           setApiQuery(results.query?.expression || '');
-          setTotalResults(results.pagination?.total || 0);
+          setTotalResults(results.meta?.totalCount || 0);
           setUsingApiResults(true);
-        } else if (wasRealQuery) {
-          // This is an empty result from a real query
+          setHasEmptyResults(false);
+        } else {
+          // Always show empty state when no results or empty array
           setLeads([]);
-          setApiQuery(results.query?.expression || '');
           setTotalResults(0);
           setUsingApiResults(true);
-          // Add a flag to indicate empty results from a real query
-          setHasEmptyResults(true);
-        } else {
-          // No real query was performed, use sample data
-          setSampleLeads();
+          setHasEmptyResults(true); // Show the empty results message
         }
       } catch (error) {
         console.error('Error parsing stored results:', error);
-        setSampleLeads();
+        setLeads([]);
+        setHasEmptyResults(true);
       } finally {
         setIsLoading(false);
       }
     } else {
-      // No stored results, load sample leads
-      setSampleLeads();
+      // No stored results = empty state
+      setLeads([]);
+      setHasEmptyResults(true);
       setIsLoading(false);
     }
-
-    // If we're not using API results, generate based on preferences
-    if (!usingApiResults) {
-      const sampleLeads = userPreferences
-        ? generatePreferenceBasedLeads(userPreferences)
-        : generateGenericLeads();
-      setLeads(sampleLeads);
-    }
-  }, [userPreferences, usingApiResults]);
+  }, []); // Empty dependency array
 
   // Handler for redirecting to lead query page
   const handleExploreLeads = () => {
@@ -473,11 +454,11 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
                     <SelectValue placeholder="Select amount" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="100">100 contacts</SelectItem>
-                    <SelectItem value="500">500 contacts</SelectItem>
-                    <SelectItem value="1000">1,000 contacts</SelectItem>
-                    <SelectItem value="2000">2,000 contacts</SelectItem>
-                    <SelectItem value="5000">5,000 contacts</SelectItem>
+                    {CONTACT_OPTIONS.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
