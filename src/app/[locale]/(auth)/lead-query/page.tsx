@@ -319,6 +319,9 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
 
       const queryExpression = parts.join(' AND ');
 
+      // Store the exact query expression for later use
+      localStorage.setItem('original-query-expression', queryExpression);
+
       console.log('Submitting query:', queryExpression);
 
       // Create the request body
@@ -355,6 +358,7 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
         data: data.data,
         pagination: data.pagination,
         query: data.query,
+        meta: data.meta,
         userSelections: {
           state: formData.state,
           city: formData.city,

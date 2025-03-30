@@ -42,7 +42,10 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log('Payment intent created successfully:', paymentIntent.id);
+    // Log the transaction ID (payment intent ID)
+    console.log('Payment intent created - Transaction ID:', paymentIntent.id);
+    console.log('Payment intent amount:', amount * 100, `paise (₹${amount})`);
+    console.log('Payment intent metadata:', metadata);
 
     // Return the client secret to the frontend
     return Response.json({

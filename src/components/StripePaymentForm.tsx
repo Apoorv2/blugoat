@@ -107,11 +107,14 @@ export const StripePaymentForm = ({ onSuccess, onClose, contactCount }: StripePa
   // Create payment intent when package changes
   const createPaymentIntent = async () => {
     if (!selectedPackage) {
+      console.log('No package selected, cannot create payment intent');
       return;
     }
 
+    console.log('Creating payment intent for package:', selectedPackage.id, 'price:', selectedPackage.price / 100);
     setIsLoading(true);
     try {
+      console.log('Making API request to /api/create-payment-intent with amount:', selectedPackage.price / 100);
       const response = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: {
@@ -128,14 +131,47 @@ export const StripePaymentForm = ({ onSuccess, onClose, contactCount }: StripePa
         }),
       });
 
+      console.log('API response status:', response.status);
+
       if (!response.ok) {
         console.error('Payment intent creation failed with status:', response.status);
         setError('Could not initialize payment. Please try again.');
         setIsLoading(false);
         return;
       }
+      const { clientSecret, paymentIntentId } = await response.json();
+      console.log('PaymentIntentId:', paymentIntentId);
 
-      const { clientSecret } = await response.json();
+      if (paymentIntentId) {
+        try {
+          console.log('Registering payment with backend API...');
+          const token = await getToken();
+
+          const registerResponse = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/auth/credits/register-payment', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              paymentIntentId,
+              amount: selectedPackage.price,
+              currency: 'INR',
+              expectedCredits: selectedPackage.credits,
+            }),
+          });
+
+          if (registerResponse.ok) {
+            const data = await registerResponse.json();
+            console.log('Payment registered successfully:', data);
+          } else {
+            console.error('Failed to register payment:', await registerResponse.text());
+          }
+        } catch (error) {
+          console.error('Error registering payment with backend:', error);
+        }
+      }
+
       setClientSecret(clientSecret);
       setIsLoading(false);
     } catch (err) {
@@ -166,7 +202,7 @@ export const StripePaymentForm = ({ onSuccess, onClose, contactCount }: StripePa
         const { paymentIntentId, timestamp } = JSON.parse(paymentSuccess);
         // Only use recent payments (within last 5 minutes)
         if (Date.now() - timestamp < 5 * 60 * 1000) {
-          onSuccess(paymentIntentId);
+          handleStripePaymentSuccess(paymentIntentId);
           localStorage.removeItem('payment_success');
         }
       } catch (e) {
@@ -213,7 +249,7 @@ export const StripePaymentForm = ({ onSuccess, onClose, contactCount }: StripePa
     } else {
       console.log('Payment completed');
       setPaymentStatus('success');
-      onSuccess(undefined);
+      handleStripePaymentSuccess(undefined);
     }
   };
 
@@ -259,6 +295,12 @@ export const StripePaymentForm = ({ onSuccess, onClose, contactCount }: StripePa
         })}
       </div>
     );
+  };
+
+  const handleStripePaymentSuccess = async (paymentIntentId: string) => {
+    // Log the successful transaction
+    // Pass the transaction ID to the parent component via onSuccess
+    onSuccess(paymentIntentId);
   };
 
   return (

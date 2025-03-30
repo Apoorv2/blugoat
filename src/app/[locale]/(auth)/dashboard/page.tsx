@@ -3,7 +3,7 @@
 /* eslint-disable unused-imports/no-unused-vars */
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import { MailSearch, SearchIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -97,6 +97,7 @@ type ApiResponse = {
 
 const DashboardPage = ({ params }: { params: { locale: string } }) => {
   const { isLoaded, user } = useUser();
+  const { getToken } = useAuth();
   const router = useRouter();
   const { locale } = params;
   const [leads, setLeads] = useState<Lead[]>([
@@ -187,6 +188,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
               industry,
             };
           });
+          console.log('results.meta', results.meta);
 
           setLeads(transformedLeads);
           setApiQuery(results.query?.expression || '');
@@ -258,11 +260,153 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     setShowPreferencesForm(true);
   };
 
-  // Handle purchase button click
-  const handlePurchase = () => {
-    console.log('Purchase initiated for', selectedContactCount, 'contacts');
-    setShowPaymentModal(true);
+  // Update the handlePurchase function with better error handling and query parsing
+  const handlePurchase = async () => {
+    try {
+      // Get the stored query from localStorage
+      const storedResults = localStorage.getItem('lead-query-results');
+      const storedQuery = localStorage.getItem('original-query-expression');
+
+      if (!storedResults) {
+        console.error('No query found to purchase');
+        return;
+      }
+
+      // Use the original query expression if available, otherwise try to extract from results
+      let queryExpression = '';
+
+      if (storedQuery) {
+        // Use the exact query that was sent to the preview API
+        queryExpression = storedQuery;
+        console.log('Using original stored query expression:', queryExpression);
+      } else {
+        const results = JSON.parse(storedResults) as ApiResponse;
+        console.log('Parsed stored results:', results);
+
+        // Try to extract from various locations
+        if (results.query?.expression) {
+          queryExpression = results.query.expression;
+        } else if (results.query?.originalQuery) {
+          queryExpression = results.query.originalQuery;
+        }
+
+        console.log('Extracted expression from results:', queryExpression);
+      }
+
+      if (!queryExpression) {
+        console.error('No valid query expression found');
+        return;
+      }
+
+      const payload = {
+        expression: queryExpression.trim(),
+        count: Number.parseInt(selectedContactCount, 10),
+        format: 'json',
+        deliveryMethod: 'download',
+      };
+
+      console.log('Sending purchase payload:', payload);
+
+      const token = await getToken();
+      const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/individuals/purchase', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Purchase successful:', data);
+
+        if (data.success && data.data?.transactionId) {
+          const transactionId = data.data.transactionId;
+          await retrievePurchasedContacts(transactionId);
+        }
+      } else {
+        // Get detailed error message
+        const errorText = await response.text();
+        console.error(`Purchase failed (${response.status}):`, errorText);
+        try {
+          // Try to parse error as JSON
+          const errorJson = JSON.parse(errorText);
+          console.error('Error details:', errorJson);
+        } catch {
+          // Text wasn't JSON, already logged as text
+        }
+      }
+    } catch (error) {
+      console.error('Error during purchase:', error);
+    }
   };
+
+  // Add function to retrieve purchased contacts
+  const retrievePurchasedContacts = async (transactionId: string) => {
+    try {
+      const token = await getToken();
+      const downloadUrl = `https://blugoat-api-310650732642.us-central1.run.app/api/individuals/results/${transactionId}?email=true&format=csv`;
+
+      // Call API correctly with proper fetch syntax
+      const response = await fetch(downloadUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        console.log('Successfully retrieved contacts');
+
+        // Open in a new tab for viewing/download
+        window.open(downloadUrl, '_blank');
+
+        // Update credits display
+        fetchUserCredits();
+      } else {
+        console.error('Failed to retrieve contacts:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error retrieving purchased contacts:', error);
+    }
+  };
+
+  // Add a function to fetch the user's credit balance
+  const fetchUserCredits = async () => {
+    try {
+      console.log('Fetching user credits balance...');
+      const token = await getToken();
+
+      const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/auth/credits/balance', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Credits balance response:', data);
+        if (data.success && data.data && typeof data.data.balance === 'number') {
+          setUserCredits(data.data.balance);
+        } else {
+          console.error('Invalid credits balance response format:', data);
+        }
+      } else {
+        console.error('Failed to fetch credits balance:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error fetching credits balance:', error);
+    }
+  };
+
+  // Call this function when the component mounts
+  useEffect(() => {
+    if (isLoaded && user) {
+      fetchUserCredits();
+    }
+  }, [isLoaded, user]);
 
   return (
     <div className="container mx-auto space-y-8 pb-16 pt-8">
@@ -550,7 +694,8 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
               contactCount={250}
               onSuccess={(transactionId) => {
                 console.log('Payment successful with transaction ID:', transactionId);
-                setUserCredits(prev => prev + 250);
+                // Refresh the credits balance after successful payment
+                fetchUserCredits();
                 setShowTopUpModal(false);
               }}
               onClose={() => setShowTopUpModal(false)}
