@@ -1,10 +1,8 @@
-/* eslint-disable no-console */
-/* eslint-disable unused-imports/no-unused-vars */
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
-import { loadStripe, type StripeElementsOptions } from '@stripe/stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -27,22 +25,12 @@ const appearance = {
   },
 };
 
-const ELEMENTS_OPTIONS: StripeElementsOptions = {
-  mode: 'payment' as const,
-  amount: 2000,
+const ELEMENTS_OPTIONS = {
+  mode: 'payment',
+  amount: 2000, // $20.00
   currency: 'inr',
-  appearance: {
-    theme: 'stripe',
-    variables: {
-      colorPrimary: '#0570de',
-      colorBackground: '#ffffff',
-      colorText: '#30313d',
-      colorDanger: '#df1b41',
-      fontFamily: 'Ideal Sans, system-ui, sans-serif',
-      spacingUnit: '4px',
-      borderRadius: '4px',
-    },
-  },
+  payment_method_types: ['card'],
+  appearance,
 };
 
 export const StripePaymentForm = ({
@@ -63,9 +51,11 @@ export const StripePaymentForm = ({
   // Initialize payment intent
   useEffect(() => {
     const createPaymentIntent = async () => {
-      setIsLoading(true);
+      console.log('Initializing payment for', contactCount, 'contacts');
       try {
         // First test if the test API is working
+        console.log('Testing API connection...');
+
         try {
           const testResponse = await fetch('/api/ping', {
             method: 'GET',
@@ -74,13 +64,12 @@ export const StripePaymentForm = ({
             },
           });
 
-          if (!testResponse.ok) {
-            throw new Error(`API test failed with status: ${testResponse.status}`);
-          }
-
-          await testResponse.json();
+          const testData = await testResponse.json();
+          console.log('Test API response:', testData);
         } catch (error) {
+          console.error('Test API failed:', error);
           // Fall back to test mode if API fails
+          console.log('Falling back to test mode due to API issues');
           setIsLoading(false);
           return;
         }
@@ -93,7 +82,7 @@ export const StripePaymentForm = ({
             ...(getToken ? { Authorization: `Bearer ${await getToken()}` } : {}),
           },
           body: JSON.stringify({
-            amount: contactCount * 2, // ₹2 per contact
+            amount: contactCount, // ₹2 per contact
             metadata: { contactCount, purpose: 'contact_purchase' },
           }),
         });
@@ -108,7 +97,8 @@ export const StripePaymentForm = ({
         const { clientSecret } = await response.json();
         console.log('Payment intent created successfully');
         setClientSecret(clientSecret);
-      } catch (err: any) {
+      } catch (err) {
+        console.error('Payment setup error:', err);
         setError(`Payment setup failed: ${err.message}`);
       } finally {
         setIsLoading(false);
@@ -173,45 +163,32 @@ export const StripePaymentForm = ({
     // Use test mode instead of requiring a client secret
     return (
       <Elements stripe={stripePromise} options={ELEMENTS_OPTIONS}>
-        <div>
-          <DialogTitle>Payment Form</DialogTitle>
-          <CheckoutForm
-            contactCount={contactCount}
-            onSuccess={onSuccess}
-            onClose={onClose}
-            handleSubmit={handleSubmit}
-          />
-        </div>
-      </Elements>
-    );
-  }
-
-  return (
-    <Elements stripe={stripePromise} options={{ clientSecret }}>
-      <div>
-        <DialogTitle>Payment Form</DialogTitle>
+        <DialogTitle className="sr-only">Payment Form</DialogTitle>
         <CheckoutForm
           contactCount={contactCount}
           onSuccess={onSuccess}
           onClose={onClose}
           handleSubmit={handleSubmit}
         />
-      </div>
+      </Elements>
+    );
+  }
+
+  return (
+    <Elements stripe={stripePromise} options={{ clientSecret }}>
+      <DialogTitle className="sr-only">Payment Form</DialogTitle>
+      <CheckoutForm
+        contactCount={contactCount}
+        onSuccess={onSuccess}
+        onClose={onClose}
+        handleSubmit={handleSubmit}
+      />
     </Elements>
   );
 };
 
-// Inner checkout form with proper type definitions
-function CheckoutForm({
-  contactCount,
-  onClose,
-  handleSubmit,
-}: {
-  contactCount: number;
-  onSuccess: () => void;
-  onClose: () => void;
-  handleSubmit: (e: React.FormEvent<HTMLFormElement>, stripe: any, elements: any) => Promise<void>;
-}) {
+// Inner checkout form
+function CheckoutForm({ contactCount, onSuccess, onClose, handleSubmit }) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -219,16 +196,18 @@ function CheckoutForm({
 
   return (
     <form onSubmit={(e) => {
+      console.log('Payment form submitted');
       setIsProcessing(true);
       handleSubmit(e, stripe, elements)
         .finally(() => {
           setIsProcessing(false);
+          console.log('Payment processing completed');
         });
     }}
     >
+      <DialogTitle className="sr-only">Payment Details</DialogTitle>
       <h3 className="mb-4 text-lg font-bold">
         Purchase
-        {' '}
         {contactCount}
         {' '}
         Contacts

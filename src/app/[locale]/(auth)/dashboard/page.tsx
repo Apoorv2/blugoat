@@ -14,7 +14,7 @@ import { StripePaymentForm } from '@/components/StripePaymentForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogOverlay } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogOverlay, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -552,6 +552,24 @@ const DashboardPage = (props: { params: { locale: string } }) => {
                 console.log('Payment modal closed by user');
                 setShowPaymentModal(false);
               }}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {showTopUpModal && (
+        <Dialog open={showTopUpModal} onOpenChange={setShowTopUpModal}>
+          <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
+          <DialogContent className="sm:max-w-md">
+            <DialogTitle className="sr-only">Purchase Credits</DialogTitle>
+            <StripePaymentForm
+              contactCount={250}
+              onSuccess={(transactionId) => {
+                console.log('Payment successful with transaction ID:', transactionId);
+                setUserCredits(prev => prev + 250);
+                setShowTopUpModal(false);
+              }}
+              onClose={() => setShowTopUpModal(false)}
             />
           </DialogContent>
         </Dialog>

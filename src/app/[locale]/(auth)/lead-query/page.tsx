@@ -3,6 +3,7 @@
 /* eslint-disable no-console */
 'use client';
 
+import { useAuth } from '@clerk/nextjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Search, XIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -174,6 +175,9 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
   const { cities, loading: citiesLoading } = useCities(selectedState);
   const { industries, loading: industriesLoading } = useIndustries();
 
+  // Add this hook to get the auth token
+  const { getToken } = useAuth();
+
   // First effect: When state name changes, find the state ID and update selectedState
   useEffect(() => {
     if (formData.state) {
@@ -325,11 +329,15 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
         page: 1,
       };
 
-      // Call the API endpoint
-      const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/individuals/query', {
+      // Get the auth token
+      const token = await getToken();
+
+      // Call the API endpoint with authorization
+      const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/individuals/preview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(requestBody),
       });

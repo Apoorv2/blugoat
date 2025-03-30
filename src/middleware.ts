@@ -39,6 +39,9 @@ export default authMiddleware({
     '/:locale/onboarding/organization-selection(.*)',
     '/lead-query(.*)',
     '/:locale/lead-query(.*)',
+    '/api/create-payment-intent',
+    '/api/test',
+    '/api/(.*)',
   ],
   beforeAuth: (req) => {
     // Run the intl middleware before auth
@@ -47,6 +50,12 @@ export default authMiddleware({
   afterAuth: (auth, req) => {
     // Debug logging
     console.log('MIDDLEWARE: Processing request for URL:', req.url);
+
+    // Allow all API routes to pass through
+    if (req.nextUrl.pathname.startsWith('/api/')) {
+      console.log('MIDDLEWARE: API route, allowing access');
+      return NextResponse.next();
+    }
 
     // Check for debug parameter - always allow with debug param
     const url = new URL(req.url);

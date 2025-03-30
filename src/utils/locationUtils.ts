@@ -1,3 +1,4 @@
+import { useAuth } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 
 // Define types for our hook returns
@@ -172,7 +173,7 @@ const industriesData: Industry[] = [
   { id: 'HNIs', name: 'HNI' },
 ];
 
-// Hook for states
+// Hook for states - use static data
 export function useStates() {
   const [loading, setLoading] = useState(true);
 
@@ -188,12 +189,17 @@ export function useStates() {
   return { states: statesData, loading };
 }
 
-// Hook for cities based on state
+// Hook for cities based on state - use static data
 export function useCities(stateId: string) {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [cities, setCities] = useState<City[]>([]);
 
   useEffect(() => {
+    if (!stateId) {
+      setCities([]);
+      return;
+    }
+
     setLoading(true);
 
     // Debug which cities will be loaded
@@ -215,47 +221,76 @@ export function useCities(stateId: string) {
   return { cities, loading };
 }
 
-// Hook for industries - updated to fetch from API
+// Hook for industries - improved error handling for API
 export function useIndustries() {
   const [loading, setLoading] = useState(true);
   const [industries, setIndustries] = useState<Industry[]>([]);
+  const { getToken, userId } = useAuth();
 
   useEffect(() => {
-    const fetchIndustries = async () => {
-      setLoading(true);
+    async function fetchIndustries() {
       try {
-        const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/tags/category/Industry');
+        // Check if the user is authenticated
+        if (!userId) {
+          console.log('No user ID found - user might need to log in');
+          setLoading(false);
+          return;
+        }
+
+        // Get the auth token with explicit logging
+        console.log('Fetching auth token...');
+        const token = await getToken();
+
+        if (!token) {
+          console.error('No token available - user might need to log in again');
+          setLoading(false);
+          return;
+        }
+
+        console.log('Auth token retrieved, making API request...');
+        console.log('Full token for debugging:', token);
+        console.log('Token length:', token?.length);
+
+        const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/tags/category/Industry', {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (response.status === 401) {
+          console.error('API returned 401 Unauthorized - token might be expired or invalid');
+          // You might want to trigger a sign-out or token refresh here
+          setLoading(false);
+          return;
+        }
 
         if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+          throw new Error(`Failed to fetch industries (Status: ${response.status})`);
         }
 
         const data = await response.json();
+        console.log('Successfully fetched industries:', data);
+        console.log('Industries data structure:', JSON.stringify(data, null, 2));
 
-        if (data.success && Array.isArray(data.data)) {
-          // Transform API data to match expected format
-          const transformedData = data.data.map((item: any) => ({
-            id: item.id,
-            name: item.name,
-          }));
-
-          setIndustries(transformedData);
-        } else {
-          // Fallback to static data if API response is not as expected
-          console.error('Invalid API response format');
-          setIndustries(industriesData);
-        }
+        // You may need to transform the data:
+        const transformedData = (data.data || []).map(item => ({
+          id: item.id || item._id || item.tagId,
+          name: item.name || item.title || item.label,
+        }));
+        setIndustries(transformedData);
       } catch (error) {
         console.error('Error fetching industries:', error);
-        // Fallback to static data on error
+        // Fall back to static data if API call fails
+        console.log('Falling back to static industry data');
         setIndustries(industriesData);
       } finally {
         setLoading(false);
       }
-    };
+    }
 
     fetchIndustries();
-  }, []);
+  }, [getToken, userId]);
 
   return { industries, loading };
 }

@@ -67,3 +67,9 @@ export default withSentryConfig(
     telemetry: false,
   },
 );
+
+async function rewrites() {
+  return [
+    // Make sure nothing redirects /api/* to somewhere else
+  ];
+}
