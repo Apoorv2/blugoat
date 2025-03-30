@@ -89,6 +89,9 @@ type ApiResponse = {
   query?: {
     originalQuery: string;
     expression: string;
+    city?: string;
+    state?: string;
+    industry?: string;
   };
 };
 
