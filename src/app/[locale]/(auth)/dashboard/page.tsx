@@ -372,7 +372,7 @@ const DashboardPage = (props: { params: { locale: string } }) => {
                             <TableHead className="font-medium">Phone Number</TableHead>
                             <TableHead className="font-medium">City</TableHead>
                             <TableHead className="font-medium">State</TableHead>
-                            <TableHead className="font-medium">Industry</TableHead>
+                            <TableHead className="font-medium">Category</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
