@@ -209,7 +209,6 @@ export function useCities(stateId: string) {
   useEffect(() => {
     if (!stateId) {
       setCities([]);
-      return;
     }
 
     setLoading(true);
