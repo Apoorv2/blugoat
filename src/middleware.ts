@@ -112,5 +112,12 @@ export default authMiddleware({
 });
 
 export const config = {
-  matcher: ['/((?!.+\\.[\\w]+$|_next|monitoring).*)', '/', '/(api|trpc)(.*)'],
+  matcher: [
+    /*
+     * Match all request paths except for:
+     * - API routes (/api/*)
+     * - Assets (incl. /_next/static, /_next/image, /favicon.ico, etc)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 };

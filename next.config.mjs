@@ -27,6 +27,14 @@ export default withSentryConfig(
       experimental: {
         serverComponentsExternalPackages: ['@electric-sql/pglite'],
       },
+      async rewrites() {
+        return [
+          {
+            source: '/api/:path*',
+            destination: '/api/:path*',
+          },
+        ];
+      },
     }),
   ),
   {
@@ -68,8 +76,9 @@ export default withSentryConfig(
   },
 );
 
-async function rewrites() {
-  return [
-    // Make sure nothing redirects /api/* to somewhere else
-  ];
-}
+// Remove or comment out the rewrites function if it's not being used
+// async function rewrites() {
+//   return [
+//     // Make sure nothing redirects /api/* to somewhere else
+//   ];
+// }

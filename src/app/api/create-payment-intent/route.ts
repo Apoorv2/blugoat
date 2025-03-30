@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       amount: amount * 100, // Convert to cents
       currency: 'inr', // Using INR for Indian Rupees
       metadata: metadata || {}, // For tracking purposes
+      description: `Purchase of ${amount} contacts for lead generation`,
       automatic_payment_methods: {
         enabled: true,
       },
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     console.log('Payment intent created successfully:', paymentIntent.id);
 
     // Return the client secret to the frontend
-    return NextResponse.json({
+    return Response.json({
       clientSecret: paymentIntent.client_secret,
       paymentIntentId: paymentIntent.id,
     });

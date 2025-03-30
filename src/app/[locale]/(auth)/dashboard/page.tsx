@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { MailSearch, SearchIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { StripePaymentForm } from '@/components/StripePaymentForm';
 import { Badge } from '@/components/ui/badge';
@@ -78,10 +78,10 @@ type ApiResponse = {
   };
 };
 
-const DashboardPage = (props: { params: { locale: string } }) => {
+const DashboardPage = ({ params }: { params: { locale: string } }) => {
   const { isLoaded, user } = useUser();
   const router = useRouter();
-  const { locale } = props.params;
+  const { locale } = params;
   const [leads, setLeads] = useState<Lead[]>([
     // Sample data that can be replaced with API data
     {
@@ -578,6 +578,8 @@ const DashboardPage = (props: { params: { locale: string } }) => {
   );
 };
 
+export default DashboardPage;
+
 // Utility functions for getting labels
 function getStateLabel(stateId?: string): string {
   if (!stateId) {
@@ -714,5 +716,3 @@ const maskPhone = (phone: string): string => {
   const prefix = phone.startsWith('+') ? '+91 ' : '';
   return `${prefix}***${visiblePart}`;
 };
-
-export default DashboardPage;

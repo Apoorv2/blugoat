@@ -31,6 +31,7 @@ const ELEMENTS_OPTIONS = {
   currency: 'inr',
   payment_method_types: ['card'],
   appearance,
+  testMode: true,
 };
 
 export const StripePaymentForm = ({
@@ -56,23 +57,23 @@ export const StripePaymentForm = ({
         // First test if the test API is working
         console.log('Testing API connection...');
 
-        try {
-          const testResponse = await fetch('/api/ping', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+        // try {
+        //   const testResponse = await fetch('/api/ping', {
+        //     method: 'GET',
+        //     headers: {
+        //       'Content-Type': 'application/json',
+        //     },
+        //   });
 
-          const testData = await testResponse.json();
-          console.log('Test API response:', testData);
-        } catch (error) {
-          console.error('Test API failed:', error);
-          // Fall back to test mode if API fails
-          console.log('Falling back to test mode due to API issues');
-          setIsLoading(false);
-          return;
-        }
+        //   const testData = await testResponse.json();
+        //   console.log('Test API response:', testData);
+        // } catch (error) {
+        //   console.error('Test API failed:', error);
+        //   // Fall back to test mode if API fails
+        //   console.log('Falling back to test mode due to API issues');
+        //   setIsLoading(false);
+        //   return;
+        // }
 
         // Now try the actual payment intent API
         const response = await fetch('/api/create-payment-intent', {
@@ -82,7 +83,7 @@ export const StripePaymentForm = ({
             ...(getToken ? { Authorization: `Bearer ${await getToken()}` } : {}),
           },
           body: JSON.stringify({
-            amount: contactCount, // ₹2 per contact
+            amount: contactCount,
             metadata: { contactCount, purpose: 'contact_purchase' },
           }),
         });
@@ -123,11 +124,18 @@ export const StripePaymentForm = ({
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        // Return to your success page after payment
         return_url: `${window.location.origin}/payment-success`,
         payment_method_data: {
           billing_details: {
             name: 'Test Customer',
+            email: 'customer@example.com',
+            address: {
+              line1: '123 Test Street',
+              city: 'Mumbai',
+              state: 'Maharashtra',
+              postal_code: '400001',
+              country: 'IN', // Country code for India
+            },
           },
         },
       },
@@ -145,6 +153,26 @@ export const StripePaymentForm = ({
       onSuccess();
     }
   };
+
+  // Add this in your StripePaymentForm component
+  useEffect(() => {
+    // Check for payment success from redirect
+    const paymentSuccess = localStorage.getItem('payment_success');
+    if (paymentSuccess) {
+      try {
+        const { paymentIntentId, timestamp } = JSON.parse(paymentSuccess);
+        // Only use recent payments (within last 5 minutes)
+        if (Date.now() - timestamp < 5 * 60 * 1000) {
+          onSuccess();
+          // Clear the payment success record
+          localStorage.removeItem('payment_success');
+        }
+      } catch (e) {
+        // Invalid JSON, ignore
+        localStorage.removeItem('payment_success');
+      }
+    }
+  }, [onSuccess]);
 
   if (isLoading) {
     return <div className="p-4 text-center">Initializing payment...</div>;
