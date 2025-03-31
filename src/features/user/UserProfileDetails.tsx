@@ -5,7 +5,7 @@
 
 import { useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
-import { Camera, Mail, Phone, User } from 'lucide-react';
+import { Mail, Phone, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,7 +13,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 
 // Fallback data in case user data isn't loaded
 const FALLBACK_DATA = {
@@ -146,10 +145,6 @@ export const UserProfileDetails = () => {
             <div>
               <h2 className="text-2xl font-bold text-gray-800">{userData.name}</h2>
               <p className="text-muted-foreground">
-                {userData.organization}
-                {' '}
-                •
-                {' '}
                 {userData.role}
               </p>
             </div>
@@ -162,7 +157,7 @@ export const UserProfileDetails = () => {
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-            {/* User Information Section */}
+            User Information Section
             <motion.div
               className="space-y-4"
               initial={{ opacity: 0, y: 10 }}
@@ -237,7 +232,7 @@ export const UserProfileDetails = () => {
             </motion.div>
 
             {/* Account Statistics */}
-            <motion.div
+            {/* <motion.div
               className="space-y-4"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -274,11 +269,11 @@ export const UserProfileDetails = () => {
                 </div>
               </div>
 
-              <Button variant="outline" className="mt-2 w-full">
+               <Button variant="outline" className="mt-2 w-full">
                 <Camera className="mr-2 size-4" />
                 Update Profile Picture
               </Button>
-            </motion.div>
+             </motion.div> */}
           </div>
         </div>
       </CardContent>
