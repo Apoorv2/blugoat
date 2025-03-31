@@ -13,7 +13,7 @@ type CreditAnimationProps = {
 export const CreditAnimation = ({ onComplete }: CreditAnimationProps) => {
   const [count, setCount] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
-  const targetCredits = 100;
+  const targetCredits = 50;
 
   useEffect(() => {
     // eslint-disable-next-line no-console
@@ -86,7 +86,7 @@ export const CreditAnimation = ({ onComplete }: CreditAnimationProps) => {
                 }}
                 transition={{ duration: 0.5 }}
                 style={{
-                  background: 'linear-gradient(to right, rgb(99, 102, 241), rgb(168, 85, 247), rgb(219, 39, 119))',
+                  background: 'linear-gradient(to right, rgb(99, 102, 241), rgb(56, 189, 248))',
                   opacity: 0.7,
                 }}
               />

@@ -1,25 +1,36 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-console */
 /* eslint-disable ts/no-use-before-define */
 /* eslint-disable unused-imports/no-unused-vars */
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import { MailSearch, SearchIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { StripePaymentForm } from '@/components/StripePaymentForm';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogOverlay } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogOverlay, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PreferencesForm } from '@/features/dashboard/PreferencesForm';
 import { TitleBar } from '@/features/dashboard/TitleBar';
+
+// Add these constants directly in the dashboard page, near the top with other constants
+const CONTACT_OPTIONS = [
+  { value: '50', label: '50 Contacts' },
+  { value: '250', label: '250 Contacts' },
+  { value: '500', label: '500 Contacts' },
+  { value: '1000', label: '1,000 Contacts' },
+  { value: '2500', label: '2,500 Contacts' },
+  { value: '5000', label: '5,000 Contacts' },
+];
 
 // Update the lead data interface to match the required structure
 type Lead = {
@@ -58,30 +69,43 @@ type LeadApiData = {
   companies: Company[];
 };
 
+// Update the ApiResponse type to match your actual API response
 type ApiResponse = {
   success: boolean;
   data: LeadApiData[];
-  pagination: {
+  meta: {
+    totalCount: number;
+    previewCount: number;
+    estimatedCost: number;
+    previouslySeen: number;
+    percentComplete: number;
+  };
+  // These might be missing in your response
+  pagination?: {
     total: number;
     page: number;
     pageSize: number;
     totalPages: number;
   };
-  query: {
+  query?: {
     originalQuery: string;
     expression: string;
+    city?: string;
+    state?: string;
+    industry?: string;
   };
   userSelections?: {
-    state?: string;
-    city?: string;
-    industry?: string;
+    state: string;
+    city: string;
+    industry: string[];
   };
 };
 
-const DashboardPage = (props: { params: { locale: string } }) => {
+const DashboardPage = ({ params }: { params: { locale: string } }) => {
   const { isLoaded, user } = useUser();
+  const { getToken } = useAuth();
   const router = useRouter();
-  const { locale } = props.params;
+  const { locale } = params;
   const [leads, setLeads] = useState<Lead[]>([
     // Sample data that can be replaced with API data
     {
@@ -111,30 +135,17 @@ const DashboardPage = (props: { params: { locale: string } }) => {
   const [usingApiResults, setUsingApiResults] = useState(false);
   const [apiQuery, setApiQuery] = useState('');
   const [totalResults, setTotalResults] = useState(0);
-  const [selectedContactCount, setSelectedContactCount] = useState<string>('100');
+  const [selectedContactCount, setSelectedContactCount] = useState<string>('50');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [hasEmptyResults, setHasEmptyResults] = useState(false);
   const [userCredits, setUserCredits] = useState(100);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
-
-  // Define setSampleLeads BEFORE any useEffect that calls it
-  const setSampleLeads = () => {
-    // Create sample leads when no API data is available
-    const sampleLeads: Lead[] = Array.from({ length: 10 }, (_, index) => ({
-      id: `sample-${index + 1}`,
-      name: getSampleName(index),
-      email: getSampleEmail(index),
-      phoneNumber: getSamplePhone(),
-      city: ['Mumbai', 'Delhi', 'Bangalore', 'Pune', 'Chennai'][index % 5] || 'Mumbai',
-      state: ['Maharashtra', 'Delhi', 'Karnataka', 'Maharashtra', 'Tamil Nadu'][index % 5] || 'Maharashtra',
-      industry: ['Software Engineer', 'Healthcare', 'Finance', 'Education', 'Retail'][index % 5] || 'Technology',
-    }));
-
-    setLeads(sampleLeads);
-    setUsingApiResults(false);
-    setApiQuery('Sample data - no query performed');
-    setTotalResults(sampleLeads.length);
-  };
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+  const [transactionDetails, setTransactionDetails] = useState<{
+    transactionId: string;
+    count: number;
+  }>(null);
 
   // Load user preferences
   useEffect(() => {
@@ -146,7 +157,7 @@ const DashboardPage = (props: { params: { locale: string } }) => {
     }
   }, []);
 
-  // Combined effect that handles both API and preference-based data
+  // Update the useEffect that processes the lead data
   useEffect(() => {
     const storedResults = localStorage.getItem('lead-query-results');
     setIsLoading(true);
@@ -155,10 +166,13 @@ const DashboardPage = (props: { params: { locale: string } }) => {
       try {
         const results = JSON.parse(storedResults) as ApiResponse;
 
-        // Check if this was a real query (not just initial state)
-        const wasRealQuery = results.query?.expression || results.query;
+        // Extract user selections if available
+        const userSelections = results.userSelections || {
+          state: '',
+          city: '',
+          industry: [],
+        };
 
-        // Check if we have actual results
         if (results.success && results.data && results.data.length > 0) {
           // Transform API data to match our Lead type
           const transformedLeads = results.data.map((person) => {
@@ -171,65 +185,67 @@ const DashboardPage = (props: { params: { locale: string } }) => {
               contact => (contact.type === 'mobile' || contact.type === 'phone') && contact.isPrimary,
             )?.value || '';
 
-            // Extract city and state from tags
-            const cityTag = person.tags.find(tag => tag.category === 'City');
-            const stateTag = person.tags.find(tag => tag.category === 'State');
+            // Use user-selected city and state if available
+            let cityName = 'All Cities';
+            let stateName = 'All States';
 
-            // Use selected filters from the query as fallbacks
-            const city = cityTag?.name || results.userSelections?.city || '';
-            const state = stateTag?.name || results.userSelections?.state || '';
+            // If user selected a specific city, use that
+            if (userSelections.city) {
+              cityName = getCityLabel(userSelections.city);
+            }
 
-            // Extract industry from tags
-            const industryTag = person.tags.find(tag => tag.category === 'Industry');
-            const industry = industryTag?.name || results.userSelections?.industry || '';
+            // If user selected a state, use that
+            if (userSelections.state) {
+              stateName = userSelections.state;
+            }
+
+            // // If no user selections, fall back to API-derived data
+            // if (!cityName) {
+            //   cityName = extractTagValue(person.tags, 'city') || '';
+            // }
+
+            // if (!stateName) {
+            //   stateName = extractTagValue(person.tags, 'state') || '';
+            // }
 
             return {
               id: person.id,
-              name: person.full_name,
+              name: person.full_name || '',
               email: maskEmail(primaryEmail),
               phoneNumber: maskPhone(primaryPhone),
-              city,
-              state,
-              industry,
+              city: cityName,
+              state: stateName,
+              industry: getIndustryFromTags(person.tags),
             };
           });
+          console.log('results.meta', results.meta);
 
           setLeads(transformedLeads);
           setApiQuery(results.query?.expression || '');
-          setTotalResults(results.pagination?.total || 0);
+          setTotalResults(results.meta?.totalCount || 0);
           setUsingApiResults(true);
-        } else if (wasRealQuery) {
-          // This is an empty result from a real query
+          setHasEmptyResults(false);
+        } else {
+          // Always show empty state when no results or empty array
           setLeads([]);
-          setApiQuery(results.query?.expression || '');
           setTotalResults(0);
           setUsingApiResults(true);
-          // Add a flag to indicate empty results from a real query
-          setHasEmptyResults(true);
-        } else {
-          // No real query was performed, use sample data
-          setSampleLeads();
+          setHasEmptyResults(true); // Show the empty results message
         }
       } catch (error) {
         console.error('Error parsing stored results:', error);
-        setSampleLeads();
+        setLeads([]);
+        setHasEmptyResults(true);
       } finally {
         setIsLoading(false);
       }
     } else {
-      // No stored results, load sample leads
-      setSampleLeads();
+      // No stored results = empty state
+      setLeads([]);
+      setHasEmptyResults(true);
       setIsLoading(false);
     }
-
-    // If we're not using API results, generate based on preferences
-    if (!usingApiResults) {
-      const sampleLeads = userPreferences
-        ? generatePreferenceBasedLeads(userPreferences)
-        : generateGenericLeads();
-      setLeads(sampleLeads);
-    }
-  }, [userPreferences, usingApiResults]);
+  }, []); // Empty dependency array
 
   // Handler for redirecting to lead query page
   const handleExploreLeads = () => {
@@ -274,11 +290,157 @@ const DashboardPage = (props: { params: { locale: string } }) => {
     setShowPreferencesForm(true);
   };
 
-  // Handle purchase button click
-  const handlePurchase = () => {
-    console.log('Purchase initiated for', selectedContactCount, 'contacts');
-    setShowPaymentModal(true);
+  // Update the handlePurchase function with better error handling and query parsing
+  const handlePurchase = async () => {
+    try {
+      setIsPurchasing(true);
+
+      // Get the stored query from localStorage
+      const storedResults = localStorage.getItem('lead-query-results');
+      const storedQuery = localStorage.getItem('original-query-expression');
+
+      if (!storedResults) {
+        console.error('No query found to purchase');
+        return;
+      }
+
+      // Use the original query expression if available, otherwise try to extract from results
+      let queryExpression = '';
+
+      if (storedQuery) {
+        // Use the exact query that was sent to the preview API
+        queryExpression = storedQuery;
+        console.log('Using original stored query expression:', queryExpression);
+      } else {
+        const results = JSON.parse(storedResults) as ApiResponse;
+        console.log('Parsed stored results:', results);
+
+        // Try to extract from various locations
+        if (results.query?.expression) {
+          queryExpression = results.query.expression;
+        } else if (results.query?.originalQuery) {
+          queryExpression = results.query.originalQuery;
+        }
+
+        console.log('Extracted expression from results:', queryExpression);
+      }
+
+      if (!queryExpression) {
+        console.error('No valid query expression found');
+        return;
+      }
+
+      const payload = {
+        expression: queryExpression.trim(),
+        count: Number.parseInt(selectedContactCount, 10),
+        format: 'json',
+        deliveryMethod: 'download',
+      };
+
+      console.log('Sending purchase payload:', payload);
+
+      const token = await getToken();
+      const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/individuals/purchase', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+
+        if (result.success) {
+          console.log('Purchase successful:', result);
+          // Set transaction details for success message
+          setTransactionDetails({
+            transactionId: result.data.transactionId,
+            count: Number.parseInt(selectedContactCount, 10),
+          });
+          setPurchaseSuccess(true);
+
+          // Update credits
+          fetchUserCredits();
+        } else {
+          console.error('Purchase failed:', result.message);
+        }
+      } else {
+        console.error('Purchase request failed');
+      }
+    } catch (error) {
+      console.error('Error during purchase:', error);
+    } finally {
+      setIsPurchasing(false);
+    }
   };
+
+  // Add function to retrieve purchased contacts
+  const retrievePurchasedContacts = async (transactionId: string) => {
+    try {
+      const token = await getToken();
+      const downloadUrl = `https://blugoat-api-310650732642.us-central1.run.app/api/individuals/results/${transactionId}?email=true&format=csv`;
+
+      // Call API correctly with proper fetch syntax
+      const response = await fetch(downloadUrl, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        console.log('Successfully retrieved contacts');
+
+        // Open in a new tab for viewing/download
+        window.open(downloadUrl, '_blank');
+
+        // Update credits display
+        fetchUserCredits();
+      } else {
+        console.error('Failed to retrieve contacts:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error retrieving purchased contacts:', error);
+    }
+  };
+
+  // Add a function to fetch the user's credit balance
+  const fetchUserCredits = async () => {
+    try {
+      console.log('Fetching user credits balance...');
+      const token = await getToken();
+
+      const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/auth/credits/balance', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Credits balance response:', data);
+        if (data.success && data.data && typeof data.data.balance === 'number') {
+          setUserCredits(data.data.balance);
+        } else {
+          console.error('Invalid credits balance response format:', data);
+        }
+      } else {
+        console.error('Failed to fetch credits balance:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error fetching credits balance:', error);
+    }
+  };
+
+  // Call this function when the component mounts
+  useEffect(() => {
+    if (isLoaded && user) {
+      fetchUserCredits();
+    }
+  }, [isLoaded, user]);
 
   return (
     <div className="container mx-auto space-y-8 pb-16 pt-8">
@@ -473,11 +635,11 @@ const DashboardPage = (props: { params: { locale: string } }) => {
                     <SelectValue placeholder="Select amount" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="100">100 contacts</SelectItem>
-                    <SelectItem value="500">500 contacts</SelectItem>
-                    <SelectItem value="1000">1,000 contacts</SelectItem>
-                    <SelectItem value="2000">2,000 contacts</SelectItem>
-                    <SelectItem value="5000">5,000 contacts</SelectItem>
+                    {CONTACT_OPTIONS.map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -497,9 +659,18 @@ const DashboardPage = (props: { params: { locale: string } }) => {
               <Button
                 onClick={handlePurchase}
                 className="w-full bg-blue-600 text-white hover:bg-blue-700"
-                disabled={selectedContactCount === '0'}
+                disabled={selectedContactCount === '0' || isPurchasing}
               >
-                Purchase Contacts
+                {isPurchasing
+                  ? (
+                      <>
+                        <div className="mr-2 size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Processing...
+                      </>
+                    )
+                  : (
+                      'Purchase Contacts'
+                    )}
               </Button>
             </CardContent>
           </Card>
@@ -556,9 +727,73 @@ const DashboardPage = (props: { params: { locale: string } }) => {
           </DialogContent>
         </Dialog>
       )}
+
+      {showTopUpModal && (
+        <Dialog open={showTopUpModal} onOpenChange={setShowTopUpModal}>
+          <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
+          <DialogContent className="sm:max-w-md">
+            <DialogTitle className="sr-only">Purchase Credits</DialogTitle>
+            <StripePaymentForm
+              contactCount={250}
+              onSuccess={(transactionId) => {
+                console.log('Payment successful with transaction ID:', transactionId);
+                // Refresh the credits balance after successful payment
+                fetchUserCredits();
+                setShowTopUpModal(false);
+              }}
+              onClose={() => setShowTopUpModal(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Purchase Success Message */}
+      {purchaseSuccess && (
+        <Dialog open={purchaseSuccess} onOpenChange={setPurchaseSuccess}>
+          <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
+          <DialogContent className="sm:max-w-md">
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-4 flex size-20 items-center justify-center rounded-full bg-green-100">
+                <svg xmlns="http://www.w3.org/2000/svg" className="size-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+
+              <DialogTitle className="text-xl font-bold text-gray-900">Purchase Successful!</DialogTitle>
+
+              <div className="my-4 text-gray-600">
+                <p className="mb-3">
+                  Your
+                  {' '}
+                  {transactionDetails?.count}
+                  {' '}
+                  contacts have been purchased successfully and will be delivered to your email shortly.
+                </p>
+                <p className="text-sm text-gray-500">
+                  Please check your inbox and spam folder. The email will contain a CSV file with all contact details.
+                </p>
+              </div>
+
+              <div className="mt-2 rounded-md bg-gray-50 p-3 text-sm">
+                <span className="font-medium">Transaction ID: </span>
+                <span className="font-mono text-xs">{transactionDetails?.transactionId}</span>
+              </div>
+
+              <Button
+                onClick={() => setPurchaseSuccess(false)}
+                className="mt-6 w-full bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Return to Dashboard
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
+
+export default DashboardPage;
 
 // Utility functions for getting labels
 function getStateLabel(stateId?: string): string {
@@ -697,4 +932,13 @@ const maskPhone = (phone: string): string => {
   return `${prefix}***${visiblePart}`;
 };
 
-export default DashboardPage;
+// Add these utility functions after the other helper functions
+// Utility functions to extract tag values
+function extractTagValue(tags: Tag[], category: string): string {
+  const tag = tags.find(t => t.category.toLowerCase() === category.toLowerCase());
+  return tag ? tag.name : '';
+}
+
+function getIndustryFromTags(tags: Tag[]): string {
+  return extractTagValue(tags, 'Industry');
+}

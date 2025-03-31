@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { authMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import createMiddleware from 'next-intl/middleware';
@@ -39,6 +40,11 @@ export default authMiddleware({
     '/:locale/onboarding/organization-selection(.*)',
     '/lead-query(.*)',
     '/:locale/lead-query(.*)',
+    '/api/create-payment-intent',
+    '/api/test',
+    '/api/(.*)',
+    '/payment-success(.*)',
+    '/:locale/payment-success(.*)',
   ],
   beforeAuth: (req) => {
     // Run the intl middleware before auth
@@ -47,6 +53,12 @@ export default authMiddleware({
   afterAuth: (auth, req) => {
     // Debug logging
     console.log('MIDDLEWARE: Processing request for URL:', req.url);
+
+    // Allow all API routes to pass through
+    if (req.nextUrl.pathname.startsWith('/api/')) {
+      console.log('MIDDLEWARE: API route, allowing access');
+      return NextResponse.next();
+    }
 
     // Check for debug parameter - always allow with debug param
     const url = new URL(req.url);
@@ -103,5 +115,12 @@ export default authMiddleware({
 });
 
 export const config = {
-  matcher: ['/((?!.+\\.[\\w]+$|_next|monitoring).*)', '/', '/(api|trpc)(.*)'],
+  matcher: [
+    /*
+     * Match all request paths except for:
+     * - API routes (/api/*)
+     * - Assets (incl. /_next/static, /_next/image, /favicon.ico, etc)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 };

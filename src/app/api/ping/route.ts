@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
-
 export async function GET() {
-  return NextResponse.json({ status: 'ok', message: 'API is working' });
+  return Response.json({
+    ping: 'pong',
+    timestamp: Date.now(),
+  });
 }

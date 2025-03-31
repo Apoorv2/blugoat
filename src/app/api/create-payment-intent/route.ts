@@ -1,26 +1,62 @@
+/* eslint-disable no-console */
 import { NextResponse } from 'next/server';
+import Stripe from 'stripe';
 
 export async function POST(request: Request) {
   try {
+    // Check if the secret key is available
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('STRIPE_SECRET_KEY is not defined in environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 },
+      );
+    }
+
+    // Initialize Stripe with your secret key
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2024-06-20', // Try changing to '2024-06-20'
+    });
+
     // Parse the request body
     const body = await request.json();
     const { amount, metadata } = body;
 
-    // In a real app, you would create a payment intent with Stripe
-    // For now, we'll simulate a successful response with a dummy client secret
+    console.log('Received request to create payment intent:', { amount, metadata });
 
-    // Generate a fake client secret that looks like a Stripe client secret
-    const clientSecret = `pi_${Math.random().toString(36).substring(2)}_secret_${Math.random().toString(36).substring(2)}`;
+    if (!amount || amount < 1) {
+      return NextResponse.json(
+        { error: 'Invalid amount' },
+        { status: 400 },
+      );
+    }
 
-    return NextResponse.json({
-      clientSecret,
-      amount,
-      metadata,
+    // Create a payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: amount * 100, // Convert to cents
+      currency: 'inr', // Using INR for Indian Rupees
+      metadata: metadata || {}, // For tracking purposes
+      description: `Purchase of ${amount} contacts for lead generation`,
+      automatic_payment_methods: {
+        enabled: true,
+      },
+    });
+
+    // Log the transaction ID (payment intent ID)
+    console.log('Payment intent created - Transaction ID:', paymentIntent.id);
+    console.log('Payment intent amount:', amount * 100, `paise (₹${amount})`);
+    console.log('Payment intent metadata:', metadata);
+
+    // Return the client secret to the frontend
+    return Response.json({
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
     });
   } catch (error) {
+    // Log detailed error information
     console.error('Error creating payment intent:', error);
     return NextResponse.json(
-      { error: 'Failed to create payment intent' },
+      { error: 'Error creating payment intent', details: error instanceof Error ? error.message : String(error) },
       { status: 500 },
     );
   }
