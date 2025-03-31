@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
 import { useCities, useIndustries, useStates } from '@/utils/locationUtils';
 
 // Industry options
@@ -161,7 +160,7 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
   const [formData, setFormData] = useState({
     state: '',
     city: '',
-    industry: '',
+    industry: [] as string[],
     selectedOccupations: [] as string[],
     subfilters: [] as Subfilter[],
   });
@@ -294,16 +293,21 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
       // Build the query expression
       const parts = [];
 
-      // Add industry - convert ID to human-readable name
-      if (formData.industry) {
-        // Find the industry object by ID to get its name
-        const selectedIndustry = industries.find(ind => ind.id === formData.industry);
-        if (selectedIndustry) {
-          parts.push(`"${selectedIndustry.name}"`);
+      // Add industries - convert IDs to human-readable names
+      if (formData.industry.length > 0) {
+        const industryNames = formData.industry.map((id) => {
+          const industry = industries.find(ind => ind.id === id);
+          return industry ? `"${industry.name}"` : '';
+        }).filter(Boolean);
+
+        if (industryNames.length === 1) {
+          parts.push(industryNames[0]);
+        } else if (industryNames.length > 1) {
+          parts.push(`(${industryNames.join(' OR ')})`);
         }
       }
 
-      // Add city if selected
+      // Add city if selected (and skip state if city is selected)
       if (formData.city) {
         // Find the city object by ID to get its name
         const selectedCity = availableCities.find(c => c.id === formData.city);
@@ -311,9 +315,8 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
           parts.push(`("${selectedCity.label}")`);
         }
       }
-
-      // Add state if selected
-      if (formData.state) {
+      // Only add state if no city is selected
+      else if (formData.state) {
         parts.push(`("${formData.state}")`);
       }
 
@@ -550,12 +553,16 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
             </div>
             <CardDescription className="text-blue-600">
               {step === 1 && 'Tell us where you\'re looking for Audience'}
-              {step === 2 && 'What industry are you targeting?'}
+              {step === 2 && 'What category are you targeting?'}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="p-6">
-            <Tabs defaultValue="guided" className="mt-4" onValueChange={v => setQueryType(v as 'guided' | 'direct')}>
+            <Tabs
+              value={queryType}
+              className="mt-4"
+              onValueChange={v => setQueryType(v as 'guided' | 'direct')}
+            >
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="guided">Guided Search</TabsTrigger>
                 <TabsTrigger value="direct">Direct Query</TabsTrigger>
@@ -563,37 +570,41 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
 
               <TabsContent value="direct" className="m-0">
                 <CardContent className="pt-4">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="directQuery">Write your query in natural language</Label>
-                      <div className="relative">
-                        <Textarea
-                          id="directQuery"
-                          placeholder="Example: Software engineers in Delhi or Marketing managers in Bangalore"
-                          className="h-24 pl-10 pt-3"
-                          value={directQuery}
-                          onChange={e => setDirectQuery(e.target.value)}
-                        />
-                        <Search className="absolute left-3 top-3 size-5 text-gray-400" />
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        Describe exactly what you're looking for, including job titles, locations,
-                        industries or any other criteria.
-                      </p>
+                  <div className="mb-4 flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">Direct Query</h3>
+                    <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-600">
+                      Coming Soon
+                    </span>
+                  </div>
+
+                  <div className="rounded-lg border border-dashed border-blue-300 bg-blue-50 p-6 text-center">
+                    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-blue-100">
+                      <Search className="size-8 text-blue-600" />
+                    </div>
+
+                    <h3 className="mb-2 text-lg font-medium text-blue-800">
+                      Natural Language Search
+                    </h3>
+
+                    <p className="mb-4 text-sm text-blue-700">
+                      Soon you'll be able to search for your ideal audience using plain language. Simply describe what you're looking for, and we'll handle the rest.
+                    </p>
+
+                    <div className="mt-2 rounded-md bg-white/60 p-3 text-sm text-gray-500">
+                      <p className="italic">Example: "Find me software engineers in Mumbai with 5+ years of experience"</p>
                     </div>
                   </div>
                 </CardContent>
 
                 <CardFooter className="flex justify-between border-t bg-gradient-to-r from-gray-50 to-slate-50 p-6">
                   <Button variant="ghost" onClick={() => router.push(`/${locale}/dashboard`)}>
-                    Cancel
+                    Go to Dashboard
                   </Button>
                   <Button
-                    onClick={handleDirectQuerySubmit}
+                    onClick={() => setQueryType('guided')}
                     className="bg-blue-600 hover:bg-blue-700"
-                    disabled={isSubmitting || !directQuery.trim()}
                   >
-                    {isSubmitting ? 'Processing...' : 'Find My Leads'}
+                    Try Guided Search
                   </Button>
                 </CardFooter>
               </TabsContent>
@@ -609,9 +620,20 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
                       transition={{ type: 'spring', damping: 25 }}
                       className="space-y-6"
                     >
+                      <div className="mb-4 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+                        <p className="font-medium">Quick Guide:</p>
+                        <ul className="mt-1 list-inside list-disc space-y-1 pl-2">
+                          <li>Select a state and city to narrow your search, or leave them unselected for broader results</li>
+                          <li>You can click "Next" at any time to continue</li>
+                          <li>Or click "Go to Dashboard" if you prefer to skip this process</li>
+                        </ul>
+                      </div>
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="state">State</Label>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="state" className="mb-1">State</Label>
+                            <span className="text-xs text-gray-500">(Optional - select or skip)</span>
+                          </div>
                           <Select
                             value={formData.state}
                             onValueChange={(value) => {
@@ -625,7 +647,7 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
                             disabled={statesLoading}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select state" />
+                              <SelectValue placeholder="All States" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">All States</SelectItem>
@@ -636,21 +658,35 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
                               ))}
                             </SelectContent>
                           </Select>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Filter by state or leave as "All States" to search nationwide
+                          </p>
                         </div>
 
                         <div>
-                          <Label htmlFor="city">City</Label>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="city" className="mb-1">City</Label>
+                            <span className="text-xs text-gray-500">(Optional - select or skip)</span>
+                          </div>
                           <Select
                             disabled={!formData.state || citiesLoading}
                             value={formData.city}
                             onValueChange={(value) => {
-                              setFormData(prev => ({ ...prev, city: value }));
+                              setFormData(prev => ({
+                                ...prev,
+                                city: value === 'all_cities' ? '' : value,
+                              }));
                             }}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a city" />
+                              <SelectValue placeholder={!formData.state ? 'Select state first' : 'All Cities'} />
                             </SelectTrigger>
                             <SelectContent>
+                              <SelectItem value="all_cities">
+                                All Cities in
+                                {' '}
+                                {formData.state || 'selected state'}
+                              </SelectItem>
                               {citiesLoading
                                 ? (
                                     <SelectItem value="loading" disabled>Loading cities...</SelectItem>
@@ -668,6 +704,9 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
                                     )}
                             </SelectContent>
                           </Select>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Narrow down to a specific city or leave unselected to include all cities
+                          </p>
                         </div>
                       </div>
                     </motion.div>
@@ -683,7 +722,20 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
                       className="space-y-6"
                     >
                       <div className="space-y-4">
-                        <Label>Target Categories</Label>
+                        <div className="flex items-center justify-between">
+                          <Label>Target Categories</Label>
+                          <span className="text-xs font-medium text-blue-600">
+                            {formData.industry.length}
+                            {' '}
+                            selected
+                          </span>
+                        </div>
+
+                        <div className="mb-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+                          <p>Please select at least one category that best describes your target audience.</p>
+                          <p className="mt-1 text-xs">You can select multiple categories to broaden your search.</p>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-3">
                           {industriesLoading
                             ? (
@@ -696,9 +748,28 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
                                   <Button
                                     key={industry.id}
                                     type="button"
-                                    variant={formData.industry === industry.id ? 'default' : 'outline'}
-                                    className="justify-start"
-                                    onClick={() => setFormData({ ...formData, industry: industry.id })}
+                                    variant={formData.industry.includes(industry.id) ? 'default' : 'outline'}
+                                    className={`justify-start ${
+                                      formData.industry.includes(industry.id)
+                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                        : 'border-gray-200 hover:border-blue-300 hover:text-blue-600'
+                                    }`}
+                                    onClick={() => {
+                                      setFormData((prev) => {
+                                        // If already selected, remove it; otherwise, add it
+                                        if (prev.industry.includes(industry.id)) {
+                                          return {
+                                            ...prev,
+                                            industry: prev.industry.filter(id => id !== industry.id),
+                                          };
+                                        } else {
+                                          return {
+                                            ...prev,
+                                            industry: [...prev.industry, industry.id],
+                                          };
+                                        }
+                                      });
+                                    }}
                                   >
                                     <span className="ml-2">{industry.name}</span>
                                   </Button>
@@ -765,7 +836,7 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
                     variant="outline"
                     onClick={() => router.push(`/${locale}/dashboard`)}
                   >
-                    Cancel
+                    Go to Dashboard
                   </Button>
                 )
               : (
@@ -779,20 +850,9 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
                 )}
 
             <div className="flex gap-3">
-              {step === 1 && (
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setStep(2);
-                  }}
-                >
-                  Skip for now
-                </Button>
-              )}
-
               <Button
                 onClick={() => step < 2 ? setStep(step + 1) : handleSubmit()}
-                disabled={isSubmitting}
+                disabled={isSubmitting || (step === 2 && formData.industry.length === 0)}
                 className="bg-blue-600 text-white hover:bg-blue-700"
               >
                 {step < 2 ? 'Next' : 'Find Audience'}
