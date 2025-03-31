@@ -135,6 +135,12 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
   const [hasEmptyResults, setHasEmptyResults] = useState(false);
   const [userCredits, setUserCredits] = useState(100);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [purchaseSuccess, setPurchaseSuccess] = useState(false);
+  const [transactionDetails, setTransactionDetails] = useState<{
+    transactionId: string;
+    count: number;
+  }>(null);
 
   // Load user preferences
   useEffect(() => {
@@ -264,6 +270,8 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
   // Update the handlePurchase function with better error handling and query parsing
   const handlePurchase = async () => {
     try {
+      setIsPurchasing(true);
+
       // Get the stored query from localStorage
       const storedResults = localStorage.getItem('lead-query-results');
       const storedQuery = localStorage.getItem('original-query-expression');
@@ -319,27 +327,29 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        console.log('Purchase successful:', data);
+        const result = await response.json();
 
-        if (data.success && data.data?.transactionId) {
-          const transactionId = data.data.transactionId;
-          await retrievePurchasedContacts(transactionId);
+        if (result.success) {
+          console.log('Purchase successful:', result);
+          // Set transaction details for success message
+          setTransactionDetails({
+            transactionId: result.data.transactionId,
+            count: Number.parseInt(selectedContactCount, 10),
+          });
+          setPurchaseSuccess(true);
+
+          // Update credits
+          fetchUserCredits();
+        } else {
+          console.error('Purchase failed:', result.message);
         }
       } else {
-        // Get detailed error message
-        const errorText = await response.text();
-        console.error(`Purchase failed (${response.status}):`, errorText);
-        try {
-          // Try to parse error as JSON
-          const errorJson = JSON.parse(errorText);
-          console.error('Error details:', errorJson);
-        } catch {
-          // Text wasn't JSON, already logged as text
-        }
+        console.error('Purchase request failed');
       }
     } catch (error) {
       console.error('Error during purchase:', error);
+    } finally {
+      setIsPurchasing(false);
     }
   };
 
@@ -626,9 +636,18 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
               <Button
                 onClick={handlePurchase}
                 className="w-full bg-blue-600 text-white hover:bg-blue-700"
-                disabled={selectedContactCount === '0'}
+                disabled={selectedContactCount === '0' || isPurchasing}
               >
-                Purchase Contacts
+                {isPurchasing
+                  ? (
+                      <>
+                        <div className="mr-2 size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                        Processing...
+                      </>
+                    )
+                  : (
+                      'Purchase Contacts'
+                    )}
               </Button>
             </CardContent>
           </Card>
@@ -701,6 +720,49 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
               }}
               onClose={() => setShowTopUpModal(false)}
             />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Purchase Success Message */}
+      {purchaseSuccess && (
+        <Dialog open={purchaseSuccess} onOpenChange={setPurchaseSuccess}>
+          <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
+          <DialogContent className="sm:max-w-md">
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-4 flex size-20 items-center justify-center rounded-full bg-green-100">
+                <svg xmlns="http://www.w3.org/2000/svg" className="size-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+
+              <DialogTitle className="text-xl font-bold text-gray-900">Purchase Successful!</DialogTitle>
+
+              <div className="my-4 text-gray-600">
+                <p className="mb-3">
+                  Your
+                  {' '}
+                  {transactionDetails?.count}
+                  {' '}
+                  contacts have been purchased successfully and will be delivered to your email shortly.
+                </p>
+                <p className="text-sm text-gray-500">
+                  Please check your inbox and spam folder. The email will contain a CSV file with all contact details.
+                </p>
+              </div>
+
+              <div className="mt-2 rounded-md bg-gray-50 p-3 text-sm">
+                <span className="font-medium">Transaction ID: </span>
+                <span className="font-mono text-xs">{transactionDetails?.transactionId}</span>
+              </div>
+
+              <Button
+                onClick={() => setPurchaseSuccess(false)}
+                className="mt-6 w-full bg-blue-600 text-white hover:bg-blue-700"
+              >
+                Return to Dashboard
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       )}

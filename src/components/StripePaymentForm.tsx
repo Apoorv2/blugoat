@@ -412,17 +412,28 @@ export const StripePaymentForm = ({ onSuccess, onClose, contactCount }: StripePa
 
             <div className="flex flex-col gap-3">
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                whileTap={{ scale: isLoading ? 1 : 0.98 }}
                 onClick={handleProceedToPayment}
-                className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 font-medium text-white shadow-md transition-all hover:shadow-lg"
+                disabled={isLoading}
+                className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 font-medium text-white shadow-md transition-all hover:shadow-lg disabled:opacity-70"
               >
-                Continue to Payment
-                <ArrowRight className="size-4" />
+                {isLoading ? (
+                  <>
+                    <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <span>Preparing Payment...</span>
+                  </>
+                ) : (
+                  <>
+                    Continue to Payment
+                    <ArrowRight className="size-4" />
+                  </>
+                )}
               </motion.button>
               <button
                 onClick={onClose}
                 className="text-sm text-gray-600 transition-colors hover:text-gray-900"
+                disabled={isLoading}
               >
                 Cancel
               </button>
