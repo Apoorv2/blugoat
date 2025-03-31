@@ -10,7 +10,9 @@ import { CreditAnimation } from '@/components/CreditAnimation';
 const CreditsOnboardingPage = (props: { params: { locale: string } }) => {
   const router = useRouter();
   const { user, isLoaded } = useUser();
-  const [showAnimation, setShowAnimation] = useState(true);
+  const { locale } = props.params;
+  const [isFirstTimeUser, setIsFirstTimeUser] = useState(false);
+  const [hasShownAnimation, setHasShownAnimation] = useState(false);
 
   // Debug logging
   useEffect(() => {
@@ -24,46 +26,97 @@ const CreditsOnboardingPage = (props: { params: { locale: string } }) => {
     }
   }, [user, isLoaded]);
 
-  // Handle animation state
   useEffect(() => {
-    // Wait for authentication to load
-    if (!isLoaded) {
-      return;
+    if (isLoaded && user) {
+      // Check if user has completed onboarding before
+      const hasCompletedOnboarding = user.unsafeMetadata?.hasCompletedOnboarding;
+
+      if (hasCompletedOnboarding) {
+        // Skip credits and go directly to dashboard for returning users
+        console.log('User has already completed onboarding, redirecting to dashboard');
+        router.push(`/${locale}/dashboard?bypass_org_check=true`);
+        return;
+      }
+
+      // Check if user was created recently (within the last 1 minute only)
+      const userCreationTime = new Date(user.createdAt).getTime();
+      const currentTime = new Date().getTime();
+      const timeDifference = currentTime - userCreationTime;
+
+      // Restrict to accounts created in the last minute only
+      const isNewUser = timeDifference < 1000 * 60; // 1 minute
+
+      // If not a new user and hasn't completed onboarding, mark as completed and redirect
+      if (!isNewUser && !hasCompletedOnboarding) {
+        console.log('Existing user without onboarding flag, setting flag and redirecting');
+        // Set the flag and redirect to dashboard
+        user.update({
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
+            hasCompletedOnboarding: true,
+          },
+        }).then(() => {
+          router.push(`/${locale}/dashboard?bypass_org_check=true`);
+        });
+        return;
+      }
+
+      // Rest of your existing code for new users
+      setIsFirstTimeUser(isNewUser);
+
+      // Update public metadata only for new users
+      if (isNewUser) {
+        const updateUserMetadata = async () => {
+          try {
+            await user.update({
+              unsafeMetadata: {
+                ...user.unsafeMetadata,
+                hasCompletedOnboarding: true,
+              },
+            });
+          } catch (error) {
+            console.error('Failed to update user metadata:', error);
+          }
+        };
+
+        updateUserMetadata();
+      }
     }
+  }, [isLoaded, user, router, locale]);
 
-    // If coming directly from signup, always show the animation
-    const fromSignup = window.location.search.includes('from_signup=true');
-    const hasSeenCredits = localStorage.getItem('has_seen_credits') === 'true';
-    const isDebugging = window.location.search.includes('debug=true');
-
-    console.log('Decision factors:', { hasSeenCredits, isDebugging, fromSignup });
-
-    // Only redirect if user has seen credits AND is not coming from signup AND is not debugging
-    if (hasSeenCredits && !fromSignup && !isDebugging) {
-      console.log('User has already seen credits, redirecting to dashboard');
-      router.push(`/${props.params.locale}/dashboard`);
-      return;
-    }
-
-    // First-time or debugging users see the animation
-
-    console.log('Showing credit animation to user');
-    setShowAnimation(true);
-  }, [isLoaded, props.params.locale, router]);
+  // Show animation for first-time users who haven't seen it yet
+  const shouldShowAnimation = isFirstTimeUser && !hasShownAnimation;
 
   const handleAnimationComplete = () => {
-    localStorage.setItem('has_seen_credits', 'true');
+    setHasShownAnimation(true);
 
-    const redirectPath = `/${props.params.locale}/lead-query?bypass_org_check=true`;
-
+    // Add redirection after animation completes
+    const redirectPath = `/${locale}/lead-query?bypass_org_check=true`;
     console.log('Animation complete, redirecting to:', redirectPath);
-
-    window.location.href = redirectPath;
+    router.push(redirectPath);
   };
+
+  useEffect(() => {
+    const markOnboardingComplete = async () => {
+      if (user) {
+        await user.update({
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
+            hasCompletedOnboarding: true,
+          },
+        });
+      }
+    };
+
+    // Call this when onboarding is complete
+    if (shouldShowAnimation) {
+      markOnboardingComplete();
+    }
+  }, [shouldShowAnimation, user]);
 
   return (
     <div className="flex h-screen w-full items-center justify-center">
-      {showAnimation
+      {shouldShowAnimation
         ? (
             <CreditAnimation
               onComplete={handleAnimationComplete}

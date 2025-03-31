@@ -4,7 +4,7 @@
 /* eslint-disable no-console */
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useAuth, useUser } from '@clerk/nextjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Search, XIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -177,6 +177,7 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
 
   // Add this hook to get the auth token
   const { getToken } = useAuth();
+  const { user } = useUser();
 
   // First effect: When state name changes, find the state ID and update selectedState
   useEffect(() => {
@@ -356,8 +357,9 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
       const data = await response.json();
       console.log('API response:', data);
 
-      // Save to localStorage for dashboard to access
-      localStorage.setItem('lead-query-results', JSON.stringify({
+      // Store results with user-specific key
+      const userId = user.id;
+      localStorage.setItem(`lead-query-results-${userId}`, JSON.stringify({
         success: true,
         data: data.data,
         pagination: data.pagination,

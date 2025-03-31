@@ -1,3 +1,7 @@
+/* eslint-disable ts/consistent-type-imports */
+/* eslint-disable simple-import-sort/imports */
+/* eslint-disable style/no-trailing-spaces */
+/* eslint-disable style/multiline-ternary */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-console */
 /* eslint-disable ts/no-use-before-define */
@@ -10,6 +14,7 @@ import { MailSearch, SearchIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useEffect, useState } from 'react';
+import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 
 import { StripePaymentForm } from '@/components/StripePaymentForm';
 import { Badge } from '@/components/ui/badge';
@@ -101,6 +106,43 @@ type ApiResponse = {
   };
 };
 
+const EmptyStateNewUser = ({ 
+  locale, 
+  router,
+}: { 
+  locale: string; 
+  router: AppRouterInstance;
+}) => {
+  const t = useTranslations('DashboardIndex');
+
+  return (
+    <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-blue-200 bg-blue-50/50 p-12 text-center">
+      <div className="mb-6 rounded-full bg-blue-100 p-6">
+        <SearchIcon className="size-12 text-blue-600" />
+      </div>
+
+      <h2 className="mb-3 text-2xl font-bold text-gray-900">Welcome to Your Dashboard!</h2>
+
+      <p className="mb-2 max-w-md text-gray-600">
+        This is where you'll see your audience data after running a search.
+      </p>
+
+      <p className="mb-6 max-w-md text-gray-600">
+        To get started, search for your target audience using location, industry, and other criteria.
+      </p>
+
+      <Button
+        onClick={() => router.push(`/${locale}/lead-query`)}
+        className="bg-blue-600 text-white hover:bg-blue-700"
+        size="lg"
+      >
+        Find Your Audience
+        <SearchIcon className="ml-2 size-5" />
+      </Button>
+    </div>
+  );
+};
+
 const DashboardPage = ({ params }: { params: { locale: string } }) => {
   const { isLoaded, user } = useUser();
   const { getToken } = useAuth();
@@ -138,7 +180,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
   const [selectedContactCount, setSelectedContactCount] = useState<string>('50');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [hasEmptyResults, setHasEmptyResults] = useState(false);
-  const [userCredits, setUserCredits] = useState(100);
+  const [userCredits, setUserCredits] = useState(0);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [isPurchasing, setIsPurchasing] = useState(false);
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
@@ -146,6 +188,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     transactionId: string;
     count: number;
   }>(null);
+  const [isLoadingCreditBalance, setIsLoadingCreditBalance] = useState(false);
 
   // Load user preferences
   useEffect(() => {
@@ -159,93 +202,126 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
 
   // Update the useEffect that processes the lead data
   useEffect(() => {
-    const storedResults = localStorage.getItem('lead-query-results');
-    setIsLoading(true);
-
-    if (storedResults) {
-      try {
-        const results = JSON.parse(storedResults) as ApiResponse;
-
-        // Extract user selections if available
-        const userSelections = results.userSelections || {
-          state: '',
-          city: '',
-          industry: [],
-        };
-
-        if (results.success && results.data && results.data.length > 0) {
-          // Transform API data to match our Lead type
-          const transformedLeads = results.data.map((person) => {
-            // Find primary email and phone
-            const primaryEmail = person.contactInfo.find(
-              contact => contact.type === 'email' && contact.isPrimary,
-            )?.value || '';
-
-            const primaryPhone = person.contactInfo.find(
-              contact => (contact.type === 'mobile' || contact.type === 'phone') && contact.isPrimary,
-            )?.value || '';
-
-            // Use user-selected city and state if available
-            let cityName = 'All Cities';
-            let stateName = 'All States';
-
-            // If user selected a specific city, use that
-            if (userSelections.city) {
-              cityName = getCityLabel(userSelections.city);
-            }
-
-            // If user selected a state, use that
-            if (userSelections.state) {
-              stateName = userSelections.state;
-            }
-
-            // // If no user selections, fall back to API-derived data
-            // if (!cityName) {
-            //   cityName = extractTagValue(person.tags, 'city') || '';
-            // }
-
-            // if (!stateName) {
-            //   stateName = extractTagValue(person.tags, 'state') || '';
-            // }
-
-            return {
-              id: person.id,
-              name: person.full_name || '',
-              email: maskEmail(primaryEmail),
-              phoneNumber: maskPhone(primaryPhone),
-              city: cityName,
-              state: stateName,
-              industry: getIndustryFromTags(person.tags),
-            };
-          });
-          console.log('results.meta', results.meta);
-
-          setLeads(transformedLeads);
-          setApiQuery(results.query?.expression || '');
-          setTotalResults(results.meta?.totalCount || 0);
-          setUsingApiResults(true);
-          setHasEmptyResults(false);
-        } else {
-          // Always show empty state when no results or empty array
-          setLeads([]);
-          setTotalResults(0);
-          setUsingApiResults(true);
-          setHasEmptyResults(true); // Show the empty results message
-        }
-      } catch (error) {
-        console.error('Error parsing stored results:', error);
-        setLeads([]);
+    if (isLoaded && user) {
+      // Add user-specific prefix to all localStorage keys
+      const userId = user.id;
+      const userSpecificKey = `lead-query-results-${userId}`;
+      const hasSeenWelcomeKey = `has_seen_welcome-${userId}`;
+      
+      const storedResults = localStorage.getItem(userSpecificKey);
+      const hasSeenWelcome = localStorage.getItem(hasSeenWelcomeKey);
+      
+      setIsLoading(true);
+      console.log(`Checking results for user ${userId}:`, storedResults ? 'Found data' : 'No data');
+      
+      // First-time user check
+      if (!storedResults && !hasSeenWelcome) {
+        console.log('First-time user, showing welcome screen');
+        setUsingApiResults(false);
         setHasEmptyResults(true);
-      } finally {
         setIsLoading(false);
+        return;
       }
-    } else {
-      // No stored results = empty state
-      setLeads([]);
-      setHasEmptyResults(true);
-      setIsLoading(false);
+      
+      // Rest of your existing logic...
+      if (storedResults) {
+        try {
+          const results = JSON.parse(storedResults) as ApiResponse;
+          
+          // Mark that THIS USER has seen welcome screen
+          localStorage.setItem(hasSeenWelcomeKey, 'true');
+          
+          // Continue with existing code...
+          console.log('Parsed results:', results);
+          console.log('Has data:', results.data && results.data.length > 0);
+
+          // Always set usingApiResults to true if there are stored results
+          setUsingApiResults(true);
+
+          // Check if the results have data
+          if (results.success && results.data && results.data.length > 0) {
+            // Transform API data to match our Lead type
+            const transformedLeads = results.data.map((person) => {
+              // Find primary email and phone
+              const primaryEmail = person.contactInfo.find(
+                contact => contact.type === 'email' && contact.isPrimary,
+              )?.value || '';
+
+              const primaryPhone = person.contactInfo.find(
+                contact => (contact.type === 'mobile' || contact.type === 'phone') && contact.isPrimary,
+              )?.value || '';
+
+              // Use user-selected city and state if available
+              let cityName = 'All Cities';
+              let stateName = 'All States';
+
+              // If user selected a specific city, use that
+              if (results.userSelections?.city) {
+                cityName = getCityLabel(results.userSelections.city);
+              }
+
+              // If user selected a state, use that
+              if (results.userSelections?.state) {
+                stateName = results.userSelections.state;
+              }
+
+              // // If no user selections, fall back to API-derived data
+              // if (!cityName) {
+              //   cityName = extractTagValue(person.tags, 'city') || '';
+              // }
+
+              // if (!stateName) {
+              //   stateName = extractTagValue(person.tags, 'state') || '';
+              // }
+
+              return {
+                id: person.id,
+                name: person.full_name || '',
+                email: maskEmail(primaryEmail),
+                phoneNumber: maskPhone(primaryPhone),
+                city: cityName,
+                state: stateName,
+                industry: getIndustryFromTags(person.tags),
+              };
+            });
+            console.log('Transformed leads:', transformedLeads.length);
+            setLeads(transformedLeads);
+            setApiQuery(results.query?.expression || '');
+            setTotalResults(results.meta?.totalCount || 0);
+            setHasEmptyResults(false); // Results found, don't show empty state
+          } else {
+            // No results found
+            console.log('No results in data');
+            setLeads([]);
+            setTotalResults(0);
+            setHasEmptyResults(true); // Show empty results message
+          }
+        } catch (error) {
+          console.error('Error parsing stored results:', error);
+          setLeads([]);
+          setHasEmptyResults(true);
+        } finally {
+          setIsLoading(false);
+        }
+      }
     }
-  }, []); // Empty dependency array
+  }, [isLoaded, user]);
+
+  // Add this right after the first useEffect in the DashboardPage component
+  useEffect(() => {
+    if (isLoaded && user) {
+      // Check if user has completed onboarding
+      const hasCompletedOnboarding = user.unsafeMetadata?.hasCompletedOnboarding;
+      
+      // If new user and hasn't completed onboarding, redirect to credits
+      if (!hasCompletedOnboarding) {
+        router.push(`/${locale}/onboarding/credits?bypass_org_check=true&from_signup=true`);
+      }
+      
+      // Also fetch credits
+      fetchUserCredits();
+    }
+  }, [isLoaded, user, router, locale]);
 
   // Handler for redirecting to lead query page
   const handleExploreLeads = () => {
@@ -410,6 +486,9 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
   // Add a function to fetch the user's credit balance
   const fetchUserCredits = async () => {
     try {
+      // Set loading state to true when starting the fetch
+      setIsLoadingCreditBalance(true);
+
       console.log('Fetching user credits balance...');
       const token = await getToken();
 
@@ -434,15 +513,11 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
       }
     } catch (error) {
       console.error('Error fetching credits balance:', error);
+    } finally {
+      // Always set loading state to false when done
+      setIsLoadingCreditBalance(false);
     }
   };
-
-  // Call this function when the component mounts
-  useEffect(() => {
-    if (isLoaded && user) {
-      fetchUserCredits();
-    }
-  }, [isLoaded, user]);
 
   return (
     <div className="container mx-auto space-y-8 pb-16 pt-8">
@@ -459,7 +534,14 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
             </div>
             <div>
               <span className="text-sm font-medium text-gray-500">Credits:</span>
-              <span className="ml-1 font-bold">{userCredits}</span>
+              {isLoadingCreditBalance ? (
+                <span className="ml-1 inline-flex items-center">
+                  <div className="mr-1 size-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                  <span className="font-medium text-gray-500">Loading</span>
+                </span>
+              ) : (
+                <span className="ml-1 font-bold">{userCredits}</span>
+              )}
             </div>
           </div>
 
@@ -499,71 +581,72 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
           </CardHeader>
 
           <CardContent>
-            {isLoading
-              ? (
-                  <div className="flex h-40 items-center justify-center">
-                    <div className="text-center">
-                      <div className="mx-auto mb-2 size-12 animate-spin rounded-full border-4 border-blue-400 border-t-transparent"></div>
-                      <p>Loading leads...</p>
-                    </div>
-                  </div>
-                )
-              : hasEmptyResults
-                ? (
-                    <div className="flex flex-col items-center justify-center py-10 text-center">
-                      <div className="mb-6 rounded-full bg-blue-50 p-6">
-                        <MailSearch className="size-12 text-blue-500" />
-                      </div>
-                      <h3 className="mb-2 text-xl font-semibold">Sorry, we were not able to find your audience</h3>
-                      <p className="mb-6 max-w-md text-gray-600">
-                        Our system is still working to find matches for your query. We will inform you once we have what you're looking for.
-                      </p>
-                      <Button
-                        onClick={handleExploreLeads}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        Try a New Search
-                      </Button>
-                    </div>
-                  )
-                : (
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader className="bg-gray-50">
-                          <TableRow>
-                            <TableHead className="font-medium">Name</TableHead>
-                            <TableHead className="font-medium">Email</TableHead>
-                            <TableHead className="font-medium">Phone Number</TableHead>
-                            <TableHead className="font-medium">City</TableHead>
-                            <TableHead className="font-medium">State</TableHead>
-                            <TableHead className="font-medium">Category</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {leads.map(lead => (
-                            <TableRow key={lead.id} className="hover:bg-blue-50/30">
-                              <TableCell className="font-medium">{lead.name}</TableCell>
-                              <TableCell>
-                                <div className="flex items-center">
-                                  {lead.email}
-                                  <Badge variant="outline" className="ml-1 bg-blue-50 text-xs text-blue-700">Masked</Badge>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center">
-                                  {lead.phoneNumber}
-                                  <Badge variant="outline" className="ml-1 bg-blue-50 text-xs text-blue-700">Masked</Badge>
-                                </div>
-                              </TableCell>
-                              <TableCell>{lead.city}</TableCell>
-                              <TableCell>{lead.state}</TableCell>
-                              <TableCell>{lead.industry}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
+            {isLoading ? (
+              <div className="flex h-40 items-center justify-center">
+                <div className="text-center">
+                  <div className="mx-auto mb-2 size-12 animate-spin rounded-full border-4 border-blue-400 border-t-transparent"></div>
+                  <p>Loading leads...</p>
+                </div>
+              </div>
+            ) : !usingApiResults && hasEmptyResults ? (
+              // This is for new users who haven't searched yet
+              <EmptyStateNewUser locale={locale} router={router} />
+            ) : hasEmptyResults ? (
+              // This is for users who searched but got no results
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="mb-6 rounded-full bg-blue-50 p-6">
+                  <MailSearch className="size-12 text-blue-500" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">Sorry, we were not able to find your audience</h3>
+                <p className="mb-6 max-w-md text-gray-600">
+                  Our system is still working to find matches for your query. We will inform you once we have what you're looking for.
+                </p>
+                <Button
+                  onClick={handleExploreLeads}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Try a New Search
+                </Button>
+              </div>
+            ) : (
+              // This is for users with results
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader className="bg-gray-50">
+                    <TableRow>
+                      <TableHead className="font-medium">Name</TableHead>
+                      <TableHead className="font-medium">Email</TableHead>
+                      <TableHead className="font-medium">Phone Number</TableHead>
+                      <TableHead className="font-medium">City</TableHead>
+                      <TableHead className="font-medium">State</TableHead>
+                      <TableHead className="font-medium">Category</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {leads.map(lead => (
+                      <TableRow key={lead.id} className="hover:bg-blue-50/30">
+                        <TableCell className="font-medium">{lead.name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            {lead.email}
+                            <Badge variant="outline" className="ml-1 bg-blue-50 text-xs text-blue-700">Masked</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            {lead.phoneNumber}
+                            <Badge variant="outline" className="ml-1 bg-blue-50 text-xs text-blue-700">Masked</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>{lead.city}</TableCell>
+                        <TableCell>{lead.state}</TableCell>
+                        <TableCell>{lead.industry}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -583,7 +666,14 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">Available Credits</p>
-                  <p className="text-2xl font-bold">{userCredits}</p>
+                  {isLoadingCreditBalance ? (
+                    <div className="flex items-center">
+                      <div className="mr-1 size-3 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+                      <span className="font-bold text-gray-500">Loading</span>
+                    </div>
+                  ) : (
+                    <p className="text-2xl font-bold">{userCredits}</p>
+                  )}
                 </div>
                 <div className="rounded-full bg-blue-50 p-3">
                   <div className="size-6 text-blue-500">💎</div>

@@ -1,3 +1,5 @@
+/* eslint-disable unused-imports/no-unused-vars */
+/* eslint-disable no-console */
 'use client';
 
 import { SignUp, useSignUp } from '@clerk/nextjs';
@@ -7,25 +9,27 @@ export default function SignUpPage(props: { params: { locale: string } }) {
   const { isLoaded, signUp } = useSignUp();
   const { locale } = props.params;
 
+  // Define our URLs
+  const creditsUrl = `/${locale}/onboarding/credits?bypass_org_check=true&from_signup=true`;
+  const dashboardUrl = `/${locale}/dashboard?bypass_org_check=true`;
+
   // Handle redirect after successful sign-up
   useEffect(() => {
     if (isLoaded && signUp?.status === 'complete') {
-      console.log('Sign-up complete, redirecting to credits page...');
-
-      // Clear any previous flag
-      localStorage.removeItem('has_seen_credits');
-
-      // Force redirect with window.location for more reliable redirect
-      const redirectUrl = `/${locale}/onboarding/credits?bypass_org_check=true&from_signup=true`;
-      window.location.href = redirectUrl;
+      // Just redirect to credits - the credits page will determine
+      // if the user should see credits or go to dashboard
+      console.log(`Sign-up complete, redirecting to credits flow`);
+      window.location.href = creditsUrl;
     }
-  }, [isLoaded, signUp, locale]);
+  }, [isLoaded, signUp, creditsUrl]);
 
   return (
     <div className="p-8">
       <SignUp
-        redirectUrl={`/${locale}/onboarding/credits?bypass_org_check=true&from_signup=true`}
-        afterSignUpUrl={`/${locale}/onboarding/credits?bypass_org_check=true&from_signup=true`}
+        path="/sign-up"
+        afterSignUpUrl={creditsUrl}
+        signInUrl={`/${locale}/sign-in`}
+        redirectUrl={creditsUrl}
       />
     </div>
   );
