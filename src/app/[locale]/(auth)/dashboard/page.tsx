@@ -363,6 +363,8 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
 
           // Update credits
           fetchUserCredits();
+          // Add this line to retrieve the purchased contacts
+          await retrievePurchasedContacts(result.data.transactionId);
         } else {
           console.error('Purchase failed:', result.message);
         }
