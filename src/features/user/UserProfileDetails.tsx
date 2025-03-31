@@ -16,9 +16,9 @@ import { Label } from '@/components/ui/label';
 
 // Fallback data in case user data isn't loaded
 const FALLBACK_DATA = {
-  name: 'Rahul Sharma',
-  email: 'rahul.sharma@example.com',
-  phone: '+91 98765 43210',
+  name: 'Your Name',
+  email: 'Your Email',
+  phone: 'Your Phone Number',
   credits: 250,
   leadsPurchased: 45,
   joinDate: '2023-01-15',
@@ -156,10 +156,11 @@ export const UserProfileDetails = () => {
             </Button>
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-            User Information Section
+          {/* Fix: Remove grid layout and fix text placement */}
+          <div className="mt-6">
+            {/* User Information Section */}
             <motion.div
-              className="space-y-4"
+              className="max-w-xl space-y-4"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
@@ -230,50 +231,6 @@ export const UserProfileDetails = () => {
                     </div>
                   )}
             </motion.div>
-
-            {/* Account Statistics */}
-            {/* <motion.div
-              className="space-y-4"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-            >
-              <h3 className="font-semibold text-gray-800">Account Statistics</h3>
-
-              <div className="space-y-4 rounded-md border p-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Available Credits</span>
-                  <span className="font-bold text-green-600">{userData.credits}</span>
-                </div>
-                <Separator />
-
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Total Leads Purchased</span>
-                  <span className="font-semibold">{userData.leadsPurchased}</span>
-                </div>
-                <Separator />
-
-                <div>
-                  <h4 className="mb-2 font-medium text-gray-700">Billing Address</h4>
-                  <p className="text-sm text-gray-500">
-                    {userData.address.street}
-                    <br />
-                    {userData.address.city}
-                    ,
-                    {userData.address.state}
-                    {' '}
-                    {userData.address.pincode}
-                    <br />
-                    {userData.address.country}
-                  </p>
-                </div>
-              </div>
-
-               <Button variant="outline" className="mt-2 w-full">
-                <Camera className="mr-2 size-4" />
-                Update Profile Picture
-              </Button>
-             </motion.div> */}
           </div>
         </div>
       </CardContent>
