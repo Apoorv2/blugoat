@@ -94,6 +94,11 @@ type ApiResponse = {
     state?: string;
     industry?: string;
   };
+  userSelections?: {
+    state: string;
+    city: string;
+    industry: string[];
+  };
 };
 
 const DashboardPage = ({ params }: { params: { locale: string } }) => {
@@ -161,6 +166,13 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
       try {
         const results = JSON.parse(storedResults) as ApiResponse;
 
+        // Extract user selections if available
+        const userSelections = results.userSelections || {
+          state: '',
+          city: '',
+          industry: [],
+        };
+
         if (results.success && results.data && results.data.length > 0) {
           // Transform API data to match our Lead type
           const transformedLeads = results.data.map((person) => {
@@ -173,26 +185,37 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
               contact => (contact.type === 'mobile' || contact.type === 'phone') && contact.isPrimary,
             )?.value || '';
 
-            // Extract city and state from tags
-            const cityTag = person.tags.find(tag => tag.category === 'City');
-            const stateTag = person.tags.find(tag => tag.category === 'State');
+            // Use user-selected city and state if available
+            let cityName = 'All Cities';
+            let stateName = 'All States';
 
-            // Use selected filters from the query as fallbacks
-            const city = cityTag?.name || results.query?.city || '';
-            const state = stateTag?.name || results.query?.state || '';
+            // If user selected a specific city, use that
+            if (userSelections.city) {
+              cityName = getCityLabel(userSelections.city);
+            }
 
-            // Extract industry from tags
-            const industryTag = person.tags.find(tag => tag.category === 'Industry');
-            const industry = industryTag?.name || results.query?.industry || '';
+            // If user selected a state, use that
+            if (userSelections.state) {
+              stateName = userSelections.state;
+            }
+
+            // // If no user selections, fall back to API-derived data
+            // if (!cityName) {
+            //   cityName = extractTagValue(person.tags, 'city') || '';
+            // }
+
+            // if (!stateName) {
+            //   stateName = extractTagValue(person.tags, 'state') || '';
+            // }
 
             return {
               id: person.id,
-              name: person.full_name,
+              name: person.full_name || '',
               email: maskEmail(primaryEmail),
               phoneNumber: maskPhone(primaryPhone),
-              city,
-              state,
-              industry,
+              city: cityName,
+              state: stateName,
+              industry: getIndustryFromTags(person.tags),
             };
           });
           console.log('results.meta', results.meta);
@@ -908,3 +931,14 @@ const maskPhone = (phone: string): string => {
   const prefix = phone.startsWith('+') ? '+91 ' : '';
   return `${prefix}***${visiblePart}`;
 };
+
+// Add these utility functions after the other helper functions
+// Utility functions to extract tag values
+function extractTagValue(tags: Tag[], category: string): string {
+  const tag = tags.find(t => t.category.toLowerCase() === category.toLowerCase());
+  return tag ? tag.name : '';
+}
+
+function getIndustryFromTags(tags: Tag[]): string {
+  return extractTagValue(tags, 'Industry');
+}
