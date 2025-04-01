@@ -1,3 +1,4 @@
+/* eslint-disable react-dom/no-missing-button-type */
 /* eslint-disable ts/consistent-type-imports */
 /* eslint-disable simple-import-sort/imports */
 /* eslint-disable style/no-trailing-spaces */
@@ -189,6 +190,8 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     count: number;
   }>(null);
   const [isLoadingCreditBalance, setIsLoadingCreditBalance] = useState(false);
+  const [hasStoredQuery, setHasStoredQuery] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
 
   // Load user preferences
   useEffect(() => {
@@ -323,6 +326,49 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     }
   }, [isLoaded, user, router, locale]);
 
+  // Add this useEffect to check for stored queries on component load
+  useEffect(() => {
+    // Check if there are stored query results when the component loads
+    const storedResults = localStorage.getItem('lead-query-results');
+    setHasStoredQuery(!!storedResults);
+  }, []);
+
+  // Add this more robust function to check for stored queries
+  const checkForStoredQueries = () => {
+    try {
+      // Try multiple storage keys and formats for better cross-device compatibility
+      const storedResults = localStorage.getItem('lead-query-results');
+      const storedQuery = localStorage.getItem('original-query-expression');
+      const hasResults = !!storedResults;
+      
+      console.log('Storage check:', { 
+        hasResults, 
+        resultsLength: storedResults?.length || 0,
+        hasOriginalQuery: !!storedQuery,
+      });
+      
+      // Update state based on what we found
+      setHasStoredQuery(hasResults);
+      return hasResults;
+    } catch (error) {
+      // Handle storage access errors (can happen in private browsing or low storage)
+      console.error('Error checking stored queries:', error);
+      return false;
+    }
+  };
+
+  // Use the function in both mount and manual check
+  useEffect(() => {
+    checkForStoredQueries();
+    
+    // Also add a periodic check in case data is added later
+    const intervalId = setInterval(() => {
+      checkForStoredQueries();
+    }, 5000); // Check every 5 seconds
+    
+    return () => clearInterval(intervalId);
+  }, []);
+
   // Handler for redirecting to lead query page
   const handleExploreLeads = () => {
     router.push(`/${locale}/lead-query`);
@@ -366,11 +412,24 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     setShowPreferencesForm(true);
   };
 
-  // Update the handlePurchase function with better error handling and query parsing
+  // Make the purchase handler more resilient
   const handlePurchase = async () => {
     try {
       setIsPurchasing(true);
-
+      
+      // Force check storage again right before purchase
+      const queryAvailable = checkForStoredQueries();
+      
+      if (!queryAvailable) {
+        console.error('No query found to purchase - redirecting to search');
+        // Redirect to search on mobile devices since direct message isn't working
+        setTimeout(() => {
+          router.push(`/${locale}/lead-query`);
+        }, 500);
+        return;
+      }
+      
+      // Rest of your purchase handler code...
       // Get the stored query from localStorage
       const storedResults = localStorage.getItem('lead-query-results');
       const storedQuery = localStorage.getItem('original-query-expression');
@@ -518,6 +577,18 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
       setIsLoadingCreditBalance(false);
     }
   };
+
+  // Detect mobile devices on mount
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+      setIsMobileDevice(isMobile);
+      console.log('Device detection:', { isMobile, userAgent });
+    };
+    
+    checkMobile();
+  }, []);
 
   return (
     <div className="container mx-auto space-y-8 pb-16 pt-8">
@@ -748,22 +819,61 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
                 </div>
               </div>
 
-              <Button
-                onClick={handlePurchase}
-                className="w-full bg-blue-600 text-white hover:bg-blue-700"
-                disabled={selectedContactCount === '0' || isPurchasing}
-              >
-                {isPurchasing
-                  ? (
-                      <>
-                        <div className="mr-2 size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        Processing...
-                      </>
-                    )
-                  : (
-                      'Purchase Contacts'
-                    )}
-              </Button>
+              <div className="space-y-4">
+                {!hasStoredQuery && (
+                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+                    <div className="flex items-start">
+                      <div className="mr-2 mt-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <p>
+                        You need to search for contacts first. Please go to the 
+                        {' '}
+                        <button 
+                          onClick={() => router.push(`/${locale}/lead-query`)}
+                          className="font-medium text-blue-600 underline hover:text-blue-800"
+                        >
+                          Lead Query
+                        </button>
+                        {' '}
+                        page to search before purchasing.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {isMobileDevice && !hasStoredQuery && (
+                  <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                    <p className="font-medium">Important for mobile users:</p>
+                    <p className="mt-1">Search must be performed on this device. Please tap the button below to search for contacts first.</p>
+                    <Button 
+                      onClick={() => router.push(`/${locale}/lead-query`)}
+                      className="mt-2 w-full bg-red-600 text-white hover:bg-red-700"
+                    >
+                      Go to Search Page
+                    </Button>
+                  </div>
+                )}
+
+                <Button
+                  onClick={handlePurchase}
+                  className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                  disabled={selectedContactCount === '0' || isPurchasing || !hasStoredQuery}
+                >
+                  {isPurchasing ? (
+                    <>
+                      <div className="mr-2 size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Processing...
+                    </>
+                  ) : !hasStoredQuery ? (
+                    'Search for Contacts First'
+                  ) : (
+                    'Purchase Contacts'
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

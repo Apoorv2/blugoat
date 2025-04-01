@@ -18,8 +18,8 @@
   },
   "Hero": {
     "follow_twitter": "Follow @Ixartz on Twitter",
-    "title": "Describe your <ai>ideal customer</ai>. We'll find them across platforms",
-    "description": "Custom audiences for Meta, Google, WhatsApp and more – just answer a few questions.",
+    "title": "Finding your <ai>perfect audience</ai>? Just ask us. ",
+    "description": "C Custom audiences for Meta, Google, WhatsApp and more in seconds – just answer a few questions.",
     "primary_button": "Get Started",
     "secondary_button": "Star on GitHub"
   },
@@ -28,7 +28,7 @@
   },
   "Features": {
     "section_subtitle": "Features",
-    "section_title": "Powerful Custom Audience Tools At Your Fingertips",
+    "section_title": "Powerful Custom Audience At Your Fingertips",
     "section_description": "Our AI-powered platform identifies your ideal custom audience tailored to your exact specifications, helping you connect with the right customers and grow your business.",
     "feature1_title": "AI-Powered Audience Intelligence",
     "feature1_description": "Our proprietary algorithm analyzes digital footprints across platforms, while our pattern recognition technology identifies behavioral similarities to generate your perfect target audience. Your ideal audience has patterns. Our AI spots them. Your campaigns convert them.",
