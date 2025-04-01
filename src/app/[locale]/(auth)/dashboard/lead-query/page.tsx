@@ -1,3 +1,4 @@
+/* eslint-disable tailwindcss/classnames-order */
 /* eslint-disable unused-imports/no-unused-vars */
 /* eslint-disable style/multiline-ternary */
 /* eslint-disable no-console */
@@ -5,6 +6,7 @@
 
 import { motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2, MailSearch, Search } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -59,6 +61,27 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
       />
 
       <div className="mx-auto max-w-4xl">
+        <div className="mb-6 text-center">
+          <div className="flex items-center justify-center mb-4">
+            <Image
+              src="/blugoatLogo.png"
+              alt="BluGoat Logo"
+              width={64}
+              height={64}
+              className="mr-2"
+            />
+          </div>
+          <h1 className="flex items-center justify-center text-2xl font-bold text-gray-900 md:text-3xl">
+            <Image
+              src="/blugoatLogo.png"
+              alt="BluGoat Logo"
+              width={48}
+              height={48}
+              className="mr-3"
+            />
+            Help Us Find Your Perfect Custom Audience
+          </h1>
+        </div>
         <PreferencesForm
           initialData={initialData}
           onSubmit={handleSubmit}

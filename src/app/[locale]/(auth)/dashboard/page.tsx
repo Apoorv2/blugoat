@@ -30,12 +30,12 @@ import { TitleBar } from '@/features/dashboard/TitleBar';
 
 // Add these constants directly in the dashboard page, near the top with other constants
 const CONTACT_OPTIONS = [
-  { value: '50', label: '50 Contacts' },
-  { value: '250', label: '250 Contacts' },
-  { value: '500', label: '500 Contacts' },
-  { value: '1000', label: '1,000 Contacts' },
-  { value: '2500', label: '2,500 Contacts' },
-  { value: '5000', label: '5,000 Contacts' },
+  { value: '50', label: '50 Audience member' },
+  { value: '250', label: '250 Audience member' },
+  { value: '500', label: '500 Audience member' },
+  { value: '1000', label: '1,000 Audience member' },
+  { value: '2500', label: '2,500 Audience member' },
+  { value: '5000', label: '5,000 Audience member' },
 ];
 
 // Update the lead data interface to match the required structure
@@ -417,21 +417,23 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     try {
       setIsPurchasing(true);
       
-      // Force check storage again right before purchase
-      const queryAvailable = checkForStoredQueries();
+      // Check for query in multiple storage locations
+      const hasLocalQuery = !!localStorage.getItem('lead-query-results');
+      const hasSessionQuery = !!sessionStorage.getItem('lead-query-results');
+      const queryAvailable = hasLocalQuery || hasSessionQuery;
       
       if (!queryAvailable) {
-        console.error('No query found to purchase - redirecting to search');
-        // Redirect to search on mobile devices since direct message isn't working
-        setTimeout(() => {
-          router.push(`/${locale}/lead-query`);
-        }, 500);
+        // Redirect to search without checking device type
+        router.push(`/${locale}/lead-query`);
         return;
       }
       
-      // Rest of your purchase handler code...
+      // Get the query data from whichever storage has it
+      const storedResults = localStorage.getItem('lead-query-results') 
+        || sessionStorage.getItem('lead-query-results');
+      
+      // Continue with your existing purchase logic...
       // Get the stored query from localStorage
-      const storedResults = localStorage.getItem('lead-query-results');
       const storedQuery = localStorage.getItem('original-query-expression');
 
       if (!storedResults) {
@@ -726,9 +728,9 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
           {/* Remove the Credits card and keep only the Purchase section */}
           <Card className="h-fit lg:sticky lg:top-4">
             <CardHeader>
-              <CardTitle>Access Complete Contact Data</CardTitle>
+              <CardTitle>Access Complete Audience member</CardTitle>
               <CardDescription>
-                You're viewing limited results from your search with masked contact information.
+                You're viewing limited results from your search with masked Audience member information.
               </CardDescription>
             </CardHeader>
 
@@ -777,10 +779,10 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
 
             <CardContent className="space-y-6 pt-6">
               <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm">
-                <h3 className="mb-1 font-semibold text-yellow-800">Access Complete Contact Data</h3>
+                <h3 className="mb-1 font-semibold text-yellow-800">Access Complete Audience member Details</h3>
                 <p className="text-yellow-700">
-                  You're viewing limited results from your search with masked contact information.
-                  Purchase full access to see complete contact details for your target audience.
+                  You're viewing limited results from your search with masked Audience member information.
+                  Purchase full access to see complete Audience member details for your target audience.
                   Data will be sent to
                   {' '}
                   <span className="font-bold">{user?.primaryEmailAddress?.emailAddress}</span>
@@ -815,7 +817,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-gray-500">
-                  1 contact = 1 credit
+                  1 Audience member = 1 credit
                 </div>
               </div>
 
@@ -829,7 +831,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
                         </svg>
                       </div>
                       <p>
-                        You need to search for contacts first. Please go to the 
+                        You need to search for Audience member contacts first. Please go to the 
                         {' '}
                         <button 
                           onClick={() => router.push(`/${locale}/lead-query`)}
@@ -844,19 +846,6 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
                   </div>
                 )}
 
-                {isMobileDevice && !hasStoredQuery && (
-                  <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-                    <p className="font-medium">Important for mobile users:</p>
-                    <p className="mt-1">Search must be performed on this device. Please tap the button below to search for contacts first.</p>
-                    <Button 
-                      onClick={() => router.push(`/${locale}/lead-query`)}
-                      className="mt-2 w-full bg-red-600 text-white hover:bg-red-700"
-                    >
-                      Go to Search Page
-                    </Button>
-                  </div>
-                )}
-
                 <Button
                   onClick={handlePurchase}
                   className="w-full bg-blue-600 text-white hover:bg-blue-700"
@@ -868,9 +857,9 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
                       Processing...
                     </>
                   ) : !hasStoredQuery ? (
-                    'Search for Contacts First'
+                    'Search for Audience member First'
                   ) : (
-                    'Purchase Contacts'
+                    'Purchase Audience member'
                   )}
                 </Button>
               </div>
