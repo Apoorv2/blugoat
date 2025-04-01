@@ -16,18 +16,11 @@ export const Features = () => {
         title={t('section_title')}
         description={t('section_description')}
       >
-        <div className="mb-12 flex justify-center">
+        {/* <div className="mb-12 flex justify-center">
           <div className="text-center">
-            <Image
-              src="/assets/images/ai-powered-support.png"
-              alt="AI-Powered Support"
-              width={220}
-              height={150}
-              className="mx-auto"
-            />
             <p className="mt-4 text-lg font-medium text-primary">Powered by Advanced AI</p>
           </div>
-        </div>
+        </div> */}
 
         <div className="grid grid-cols-1 gap-x-3 gap-y-8 md:grid-cols-3">
           <FeatureCard
