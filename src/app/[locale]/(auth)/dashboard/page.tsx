@@ -1,3 +1,4 @@
+/* eslint-disable react-dom/no-missing-button-type */
 /* eslint-disable ts/consistent-type-imports */
 /* eslint-disable simple-import-sort/imports */
 /* eslint-disable style/no-trailing-spaces */
@@ -29,12 +30,12 @@ import { TitleBar } from '@/features/dashboard/TitleBar';
 
 // Add these constants directly in the dashboard page, near the top with other constants
 const CONTACT_OPTIONS = [
-  { value: '50', label: '50 Contacts' },
-  { value: '250', label: '250 Contacts' },
-  { value: '500', label: '500 Contacts' },
-  { value: '1000', label: '1,000 Contacts' },
-  { value: '2500', label: '2,500 Contacts' },
-  { value: '5000', label: '5,000 Contacts' },
+  { value: '50', label: '50 Audience member' },
+  { value: '250', label: '250 Audience member' },
+  { value: '500', label: '500 Audience member' },
+  { value: '1000', label: '1,000 Audience member' },
+  { value: '2500', label: '2,500 Audience member' },
+  { value: '5000', label: '5,000 Audience member' },
 ];
 
 // Update the lead data interface to match the required structure
@@ -189,6 +190,8 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     count: number;
   }>(null);
   const [isLoadingCreditBalance, setIsLoadingCreditBalance] = useState(false);
+  const [hasStoredQuery, setHasStoredQuery] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
 
   // Load user preferences
   useEffect(() => {
@@ -323,6 +326,49 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     }
   }, [isLoaded, user, router, locale]);
 
+  // Add this useEffect to check for stored queries on component load
+  useEffect(() => {
+    // Check if there are stored query results when the component loads
+    const storedResults = localStorage.getItem('lead-query-results');
+    setHasStoredQuery(!!storedResults);
+  }, []);
+
+  // Add this more robust function to check for stored queries
+  const checkForStoredQueries = () => {
+    try {
+      // Try multiple storage keys and formats for better cross-device compatibility
+      const storedResults = localStorage.getItem('lead-query-results');
+      const storedQuery = localStorage.getItem('original-query-expression');
+      const hasResults = !!storedResults;
+      
+      console.log('Storage check:', { 
+        hasResults, 
+        resultsLength: storedResults?.length || 0,
+        hasOriginalQuery: !!storedQuery,
+      });
+      
+      // Update state based on what we found
+      setHasStoredQuery(hasResults);
+      return hasResults;
+    } catch (error) {
+      // Handle storage access errors (can happen in private browsing or low storage)
+      console.error('Error checking stored queries:', error);
+      return false;
+    }
+  };
+
+  // Use the function in both mount and manual check
+  useEffect(() => {
+    checkForStoredQueries();
+    
+    // Also add a periodic check in case data is added later
+    const intervalId = setInterval(() => {
+      checkForStoredQueries();
+    }, 5000); // Check every 5 seconds
+    
+    return () => clearInterval(intervalId);
+  }, []);
+
   // Handler for redirecting to lead query page
   const handleExploreLeads = () => {
     router.push(`/${locale}/lead-query`);
@@ -366,13 +412,28 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     setShowPreferencesForm(true);
   };
 
-  // Update the handlePurchase function with better error handling and query parsing
+  // Make the purchase handler more resilient
   const handlePurchase = async () => {
     try {
       setIsPurchasing(true);
-
+      
+      // Check for query in multiple storage locations
+      const hasLocalQuery = !!localStorage.getItem('lead-query-results');
+      const hasSessionQuery = !!sessionStorage.getItem('lead-query-results');
+      const queryAvailable = hasLocalQuery || hasSessionQuery;
+      
+      if (!queryAvailable) {
+        // Redirect to search without checking device type
+        router.push(`/${locale}/lead-query`);
+        return;
+      }
+      
+      // Get the query data from whichever storage has it
+      const storedResults = localStorage.getItem('lead-query-results') 
+        || sessionStorage.getItem('lead-query-results');
+      
+      // Continue with your existing purchase logic...
       // Get the stored query from localStorage
-      const storedResults = localStorage.getItem('lead-query-results');
       const storedQuery = localStorage.getItem('original-query-expression');
 
       if (!storedResults) {
@@ -519,6 +580,18 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     }
   };
 
+  // Detect mobile devices on mount
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+      setIsMobileDevice(isMobile);
+      console.log('Device detection:', { isMobile, userAgent });
+    };
+    
+    checkMobile();
+  }, []);
+
   return (
     <div className="container mx-auto space-y-8 pb-16 pt-8">
       <div className="mb-4 flex items-center justify-between">
@@ -655,9 +728,9 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
           {/* Remove the Credits card and keep only the Purchase section */}
           <Card className="h-fit lg:sticky lg:top-4">
             <CardHeader>
-              <CardTitle>Access Complete Contact Data</CardTitle>
+              <CardTitle>Access Complete Audience member</CardTitle>
               <CardDescription>
-                You're viewing limited results from your search with masked contact information.
+                You're viewing limited results from your search with masked Audience member information.
               </CardDescription>
             </CardHeader>
 
@@ -706,10 +779,10 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
 
             <CardContent className="space-y-6 pt-6">
               <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm">
-                <h3 className="mb-1 font-semibold text-yellow-800">Access Complete Contact Data</h3>
+                <h3 className="mb-1 font-semibold text-yellow-800">Access Complete Audience member Details</h3>
                 <p className="text-yellow-700">
-                  You're viewing limited results from your search with masked contact information.
-                  Purchase full access to see complete contact details for your target audience.
+                  You're viewing limited results from your search with masked Audience member information.
+                  Purchase full access to see complete Audience member details for your target audience.
                   Data will be sent to
                   {' '}
                   <span className="font-bold">{user?.primaryEmailAddress?.emailAddress}</span>
@@ -744,26 +817,52 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-gray-500">
-                  1 contact = 1 credit
+                  1 Audience member = 1 credit
                 </div>
               </div>
 
-              <Button
-                onClick={handlePurchase}
-                className="w-full bg-blue-600 text-white hover:bg-blue-700"
-                disabled={selectedContactCount === '0' || isPurchasing}
-              >
-                {isPurchasing
-                  ? (
-                      <>
-                        <div className="mr-2 size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        Processing...
-                      </>
-                    )
-                  : (
-                      'Purchase Contacts'
-                    )}
-              </Button>
+              <div className="space-y-4">
+                {!hasStoredQuery && (
+                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+                    <div className="flex items-start">
+                      <div className="mr-2 mt-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <p>
+                        You need to search for Audience member contacts first. Please go to the 
+                        {' '}
+                        <button 
+                          onClick={() => router.push(`/${locale}/lead-query`)}
+                          className="font-medium text-blue-600 underline hover:text-blue-800"
+                        >
+                          Lead Query
+                        </button>
+                        {' '}
+                        page to search before purchasing.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <Button
+                  onClick={handlePurchase}
+                  className="w-full bg-blue-600 text-white hover:bg-blue-700"
+                  disabled={selectedContactCount === '0' || isPurchasing || !hasStoredQuery}
+                >
+                  {isPurchasing ? (
+                    <>
+                      <div className="mr-2 size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Processing...
+                    </>
+                  ) : !hasStoredQuery ? (
+                    'Search for Audience member First'
+                  ) : (
+                    'Purchase Audience member'
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

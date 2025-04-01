@@ -612,7 +612,7 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
                 </CardFooter>
               </TabsContent>
 
-              <TabsContent value="guided" className="m-0">
+              <TabsContent value="guided" className="m-3">
                 <AnimatePresence mode="wait">
                   {step === 1 && (
                     <motion.div
@@ -725,7 +725,7 @@ const LeadQueryPage = (props: { params: { locale: string } }) => {
                       className="space-y-6"
                     >
                       <div className="space-y-4">
-                        <div className="flex items-center justify-between">
+                        <div className="mb-4 flex items-center justify-between">
                           <Label>Target Categories</Label>
                           <span className="text-xs font-medium text-blue-600">
                             {formData.industry.length}

@@ -1,3 +1,5 @@
+/* eslint-disable style/indent */
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
 import { Background } from '@/components/Background';
@@ -14,20 +16,24 @@ export const Features = () => {
         title={t('section_title')}
         description={t('section_description')}
       >
+        {/* <div className="mb-12 flex justify-center">
+          <div className="text-center">
+            <p className="mt-4 text-lg font-medium text-primary">Powered by Advanced AI</p>
+          </div>
+        </div> */}
+
         <div className="grid grid-cols-1 gap-x-3 gap-y-8 md:grid-cols-3">
           <FeatureCard
             icon={(
-              <svg
-                className="stroke-primary-foreground stroke-2"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M0 0h24v24H0z" stroke="none" />
-                <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5" />
-              </svg>
+              <div className="flex items-center justify-center">
+              <Image
+                src="/assets/images/ai-powered-support.png"
+                alt="AI-Powered Support"
+                width={48}
+                height={48}
+                className="object-contain"
+              />
+              </div>
             )}
             title={t('feature1_title')}
           >
@@ -36,17 +42,15 @@ export const Features = () => {
 
           <FeatureCard
             icon={(
-              <svg
-                className="stroke-primary-foreground stroke-2"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M0 0h24v24H0z" stroke="none" />
-                <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5" />
-              </svg>
+              <div className="flex items-center justify-center">
+              <Image
+                src="/assets/images/chat.png"
+                alt="AI-Powered Support"
+                width={48}
+                height={48}
+                className="object-contain"
+              />
+              </div>
             )}
             title={t('feature2_title')}
           >
@@ -55,17 +59,15 @@ export const Features = () => {
 
           <FeatureCard
             icon={(
-              <svg
-                className="stroke-primary-foreground stroke-2"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M0 0h24v24H0z" stroke="none" />
-                <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5" />
-              </svg>
+              <div className="flex items-center justify-center">
+              <Image
+                src="/assets/images/customer.png"
+                alt="AI-Powered Support"
+                width={48}
+                height={48}
+                className="object-contain"
+              />
+              </div>
             )}
             title={t('feature3_title')}
           >
@@ -93,17 +95,15 @@ export const Features = () => {
 
           <FeatureCard
             icon={(
-              <svg
-                className="stroke-primary-foreground stroke-2"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M0 0h24v24H0z" stroke="none" />
-                <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5" />
-              </svg>
+              <div className="flex items-center justify-center">
+                <Image
+                  src="/assets/images/ai-powered-support.png"
+                  alt="AI-Powered Support"
+                  width={48}
+                  height={48}
+                  className="object-contain"
+                />
+              </div>
             )}
             title={t('feature5_title')}
           >
@@ -112,17 +112,15 @@ export const Features = () => {
 
           <FeatureCard
             icon={(
-              <svg
-                className="stroke-primary-foreground stroke-2"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M0 0h24v24H0z" stroke="none" />
-                <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5" />
-              </svg>
+              <div className="flex items-center justify-center">
+              <Image
+                src="/assets/images/code.png"
+                alt="AI-Powered Support"
+                width={48}
+                height={48}
+                className="object-contain"
+              />
+              </div>
             )}
             title={t('feature6_title')}
           >

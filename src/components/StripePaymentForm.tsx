@@ -395,7 +395,7 @@ export const StripePaymentForm = ({ onSuccess, onClose, contactCount }: StripePa
                           {' '}
                           {pkg.contacts}
                           {' '}
-                          contacts
+                          Audience member
                         </div>
 
                         <div className="mt-2 text-xs text-gray-500">

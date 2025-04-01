@@ -7,11 +7,11 @@ export const Logo = (props: {
 }) => (
   <div className="flex items-center text-xl font-semibold">
     <Image
-      src="/blugoatLogo.jpeg"
+      src="/blugoatLogo.png"
       alt="BluGoat Logo"
       width={64}
       height={64}
-      className="mr-1"
+      className=""
     />
     {!props.isTextHidden && AppConfig.name}
   </div>

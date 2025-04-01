@@ -1,4 +1,4 @@
-import { GitHubLogoIcon } from '@radix-ui/react-icons';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 
 import { buttonVariants } from '@/components/ui/buttonVariants';
@@ -18,7 +18,13 @@ export const CTA = () => {
             className={buttonVariants({ variant: 'outline', size: 'lg' })}
             href="/sign-up"
           >
-            <GitHubLogoIcon className="mr-2 size-5" />
+            <Image
+              src="/blugoatLogo.png"
+              alt="BluGoat Logo"
+              width={64}
+              height={64}
+              className=""
+            />
             {t('button_text')}
           </a>
         )}
