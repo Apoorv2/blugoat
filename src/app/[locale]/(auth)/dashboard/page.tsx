@@ -11,11 +11,12 @@
 
 import { useAuth, useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
-import { MailSearch, SearchIcon } from 'lucide-react';
+import { MailSearch, SearchIcon, CheckIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import React, { useEffect, useState } from 'react';
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import Image from 'next/image';
 
 import { StripePaymentForm } from '@/components/StripePaymentForm';
 import { Badge } from '@/components/ui/badge';
@@ -107,6 +108,14 @@ type ApiResponse = {
   };
 };
 
+// Add this type definition near your other types
+type StorageCheckResult = {
+  hasLocalQuery: boolean;
+  hasSessionQuery: boolean;
+  queryData: string | null;
+  storedQuery: string | null;
+};
+
 const EmptyStateNewUser = ({ 
   locale, 
   router,
@@ -192,6 +201,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
   const [isLoadingCreditBalance, setIsLoadingCreditBalance] = useState(false);
   const [hasStoredQuery, setHasStoredQuery] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [showSearchWarning, setShowSearchWarning] = useState(false);
 
   // Load user preferences
   useEffect(() => {
@@ -328,12 +338,28 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
 
   // Add this useEffect to check for stored queries on component load
   useEffect(() => {
-    // Check if there are stored query results when the component loads
-    const storedResults = localStorage.getItem('lead-query-results');
-    setHasStoredQuery(!!storedResults);
+    // Run the check on component mount
+    checkForStoredQueries();
+    
+    // Set up an event listener for storage changes
+    const handleStorageChange = () => {
+      checkForStoredQueries();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also run a periodic check for mobile Safari compatibility
+    const intervalId = setInterval(() => {
+      checkForStoredQueries();
+    }, 10000); // Check every 3 seconds
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(intervalId);
+    };
   }, []);
 
-  // First, let's update the checkForStoredQueries function to handle mobile Safari better
+  // Update the checkForStoredQueries function to also clear the warning
   const checkForStoredQueries = () => {
     try {
       // Try multiple storage approaches for iOS Safari compatibility
@@ -356,26 +382,42 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
       const hasAnyStorage = hasLocalStorage || hasSessionStorage || hasQueryInURL;
       setHasStoredQuery(hasAnyStorage);
       
+      // Also clear the warning message if we find stored query data
+      if (hasAnyStorage) {
+        setShowSearchWarning(false);
+      }
+      
       return hasAnyStorage;
     } catch (error) {
       console.error('Error checking stored queries:', error);
       // If we can't check storage, assume we have the data to avoid UI confusion
       setHasStoredQuery(true);
+      setShowSearchWarning(false);
       return true;
     }
   };
 
-  // Use the function in both mount and manual check
-  useEffect(() => {
-    checkForStoredQueries();
+  // Add an additional effect to clear the warning when lead query results change
+  // useEffect(() => {
+  //   // This will run when the component mounts and when localStorage changes
+  //   const handleStorageChange = () => {
+  //     const hasQueryResults = !!localStorage.getItem('lead-query-results') 
+  //       || !!sessionStorage.getItem('lead-query-results');
+  //     if (hasQueryResults) {
+  //       setShowSearchWarning(false);
+  //     }
+  //   };
+
+  //   // Check immediately on mount
+  //   handleStorageChange();
+
+  //   // Listen for storage events (when another tab updates localStorage)
+  //   window.addEventListener('storage', handleStorageChange);
     
-    // Also add a periodic check in case data is added later
-    const intervalId = setInterval(() => {
-      checkForStoredQueries();
-    }, 5000); // Check every 5 seconds
-    
-    return () => clearInterval(intervalId);
-  }, []);
+  //   return () => {
+  //     window.removeEventListener('storage', handleStorageChange);
+  //   };
+  // }, []);
 
   // Handler for redirecting to lead query page
   const handleExploreLeads = () => {
@@ -423,67 +465,117 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
   // Make the purchase handler more resilient
   const handlePurchase = async () => {
     try {
+      // Start showing loading state immediately
       setIsPurchasing(true);
+
+      // OPTIMIZATION 1: Cache storage check results instead of checking multiple times
+      const storageCheckResults: StorageCheckResult = {
+        hasLocalQuery: false,
+        hasSessionQuery: false,
+        queryData: null,
+        storedQuery: null,
+      };
       
-      // Check for query in multiple storage locations
-      const hasLocalQuery = !!localStorage.getItem('lead-query-results');
-      const hasSessionQuery = !!sessionStorage.getItem('lead-query-results');
-      const queryAvailable = hasLocalQuery || hasSessionQuery;
+      // OPTIMIZATION 2: Try/catch each storage operation separately to avoid aborting all checks
+      try {
+        const localData = localStorage.getItem('lead-query-results');
+        if (localData) {
+          storageCheckResults.hasLocalQuery = true;
+          storageCheckResults.queryData = localData;
+        }
+      } catch (e) {
+        console.log('localStorage access failed:', e);
+      }
+      
+      try {
+        const sessionData = sessionStorage.getItem('lead-query-results');
+        if (sessionData && !storageCheckResults.queryData) {
+          storageCheckResults.hasSessionQuery = true;
+          storageCheckResults.queryData = sessionData;
+        }
+      } catch (e) {
+        console.log('sessionStorage access failed:', e);
+      }
+      
+      try {
+        const originalQuery = localStorage.getItem('original-query-expression');
+        if (originalQuery) {
+          storageCheckResults.storedQuery = originalQuery;
+        }
+      } catch (e) {
+        console.log('original query access failed:', e);
+      }
+      
+      // OPTIMIZATION 3: Check other conditions without repeatedly accessing storage
+      const hasLeadsList = leads && leads.length > 0 && !hasEmptyResults;
+      const hasQueryCookie = document.cookie.includes('hasPerformedQuery=true');
+      const hasQueryParam = window.location.search.includes('hasQuery=true');
+      
+      const queryAvailable = storageCheckResults.hasLocalQuery 
+        || storageCheckResults.hasSessionQuery 
+        || hasLeadsList 
+        || hasQueryCookie 
+        || hasQueryParam;
+      
+      // Only log once for debugging
+      console.log('Purchase check results:', {
+        ...storageCheckResults,
+        hasLeadsList,
+        hasQueryCookie,
+        hasQueryParam,
+        queryAvailable,
+      });
       
       if (!queryAvailable) {
-        // Redirect to search without checking device type
-        router.push(`/${locale}/lead-query`);
+        setShowSearchWarning(true);
+        setIsPurchasing(false);
         return;
       }
       
-      // Get the query data from whichever storage has it
-      const storedResults = localStorage.getItem('lead-query-results') 
-        || sessionStorage.getItem('lead-query-results');
-      
-      // Continue with your existing purchase logic...
-      // Get the stored query from localStorage
-      const storedQuery = localStorage.getItem('original-query-expression');
-
-      if (!storedResults) {
-        console.error('No query found to purchase');
-        return;
-      }
-
-      // Use the original query expression if available, otherwise try to extract from results
+      // OPTIMIZATION 4: Use already parsed data when possible
       let queryExpression = '';
-
-      if (storedQuery) {
-        // Use the exact query that was sent to the preview API
-        queryExpression = storedQuery;
-        console.log('Using original stored query expression:', queryExpression);
-      } else {
-        const results = JSON.parse(storedResults) as ApiResponse;
-        console.log('Parsed stored results:', results);
-
-        // Try to extract from various locations
-        if (results.query?.expression) {
-          queryExpression = results.query.expression;
-        } else if (results.query?.originalQuery) {
-          queryExpression = results.query.originalQuery;
+      let parsedResults = null;
+      
+      // Use the cached storage check results instead of accessing storage again
+      if (storageCheckResults.storedQuery) {
+        queryExpression = storageCheckResults.storedQuery;
+      } else if (storageCheckResults.queryData) {
+        // OPTIMIZATION 5: Only parse JSON once
+        try {
+          if (!parsedResults) {
+            parsedResults = JSON.parse(storageCheckResults.queryData);
+          }
+          
+          if (parsedResults.query?.expression) {
+            queryExpression = parsedResults.query.expression;
+          } else if (parsedResults.query?.originalQuery) {
+            queryExpression = parsedResults.query.originalQuery;
+          }
+        } catch (e) {
+          console.error('Error parsing results:', e);
         }
-
-        console.log('Extracted expression from results:', queryExpression);
       }
-
+      
+      // Use leads as fallback if needed
+      if (!queryExpression && hasLeadsList) {
+        queryExpression = JSON.stringify({ data: leads });
+      }
+      
       if (!queryExpression) {
         console.error('No valid query expression found');
+        setIsPurchasing(false);
         return;
       }
-
+      
+      // OPTIMIZATION 6: Prepare payload outside of API call for better error recovery
       const payload = {
         expression: queryExpression.trim(),
         count: Number.parseInt(selectedContactCount, 10),
         format: 'json',
         deliveryMethod: 'download',
       };
-
-      console.log('Sending purchase payload:', payload);
-
+      
+      // Rest of your purchase logic remains the same...
       const token = await getToken();
       const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/individuals/purchase', {
         method: 'POST',
@@ -493,7 +585,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
         },
         body: JSON.stringify(payload),
       });
-
+      
       if (response.ok) {
         const result = await response.json();
 
@@ -599,6 +691,11 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     
     checkMobile();
   }, []);
+
+  // Add this function and button to allow manual dismissal of the warning
+  const dismissWarning = () => {
+    setShowSearchWarning(false);
+  };
 
   return (
     <div className="container mx-auto space-y-8 pb-16 pt-8">
@@ -830,26 +927,35 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
               </div>
 
               <div className="space-y-4">
-                {!hasStoredQuery && (
+                {showSearchWarning && (
                   <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-                    <div className="flex items-start">
-                      <div className="mr-2 mt-0.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
+                    <div className="flex items-start justify-between">
+                      <div className="flex">
+                        <div className="mr-2 mt-0.5">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <p>
+                          You need to search for Audience member contacts first. Please go to the 
+                          {' '}
+                          <button 
+                            onClick={() => router.push(`/${locale}/lead-query`)}
+                            className="font-medium text-blue-600 underline hover:text-blue-800"
+                          >
+                            Lead Query
+                          </button>
+                          {' '}
+                          page to search before purchasing.
+                        </p>
                       </div>
-                      <p>
-                        You need to search for Audience member contacts first. Please go to the 
-                        {' '}
-                        <button 
-                          onClick={() => router.push(`/${locale}/lead-query`)}
-                          className="font-medium text-blue-600 underline hover:text-blue-800"
-                        >
-                          Lead Query
-                        </button>
-                        {' '}
-                        page to search before purchasing.
-                      </p>
+                      <button 
+                        onClick={dismissWarning} 
+                        className="ml-2 text-gray-500 hover:text-gray-700"
+                        aria-label="Dismiss"
+                      >
+                        ✕
+                      </button>
                     </div>
                   </div>
                 )}
@@ -857,15 +963,13 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
                 <Button
                   onClick={handlePurchase}
                   className="w-full bg-blue-600 text-white hover:bg-blue-700"
-                  disabled={selectedContactCount === '0' || isPurchasing || !hasStoredQuery}
+                  disabled={selectedContactCount === '0' || isPurchasing}
                 >
                   {isPurchasing ? (
                     <>
                       <div className="mr-2 size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                       Processing...
                     </>
-                  ) : !hasStoredQuery ? (
-                    'Search for Audience member First'
                   ) : (
                     'Purchase Audience member'
                   )}
@@ -910,7 +1014,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
       {showPaymentModal && (
         <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
           <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-xl">
             <StripePaymentForm
               contactCount={Number.parseInt(selectedContactCount, 10)}
               onSuccess={() => {
@@ -930,7 +1034,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
       {showTopUpModal && (
         <Dialog open={showTopUpModal} onOpenChange={setShowTopUpModal}>
           <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-xl">
             <DialogTitle className="sr-only">Purchase Credits</DialogTitle>
             <StripePaymentForm
               contactCount={250}
@@ -948,45 +1052,46 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
 
       {/* Purchase Success Message */}
       {purchaseSuccess && (
-        <Dialog open={purchaseSuccess} onOpenChange={setPurchaseSuccess}>
-          <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
-          <DialogContent className="sm:max-w-md">
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 flex size-20 items-center justify-center rounded-full bg-green-100">
-                <svg xmlns="http://www.w3.org/2000/svg" className="size-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-
-              <DialogTitle className="text-xl font-bold text-gray-900">Purchase Successful!</DialogTitle>
-
-              <div className="my-4 text-gray-600">
-                <p className="mb-3">
-                  Your
-                  {' '}
-                  {transactionDetails?.count}
-                  {' '}
-                  contacts have been purchased successfully and will be delivered to your email shortly.
-                </p>
-                <p className="text-sm text-gray-500">
-                  Please check your inbox and spam folder. The email will contain a CSV file with all contact details.
-                </p>
-              </div>
-
-              <div className="mt-2 rounded-md bg-gray-50 p-3 text-sm">
-                <span className="font-medium">Transaction ID: </span>
-                <span className="font-mono text-xs">{transactionDetails?.transactionId}</span>
-              </div>
-
-              <Button
-                onClick={() => setPurchaseSuccess(false)}
-                className="mt-6 w-full bg-blue-600 text-white hover:bg-blue-700"
-              >
-                Return to Dashboard
-              </Button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+            {/* Add Bluegoat Logo at the top */}
+            <div className="mb-4 flex justify-center">
+              <Image 
+                src="/blugoatLogo.png"
+                alt="Bluegoat Logo" 
+                width={120} 
+                height={60}
+                className="mb-2"
+              />
             </div>
-          </DialogContent>
-        </Dialog>
+            
+            <div className="mb-4 text-center">
+              <div className="mb-2 inline-flex size-12 items-center justify-center rounded-full bg-green-100">
+                <CheckIcon className="size-6 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold">Purchase Successful!</h3>
+              <p className="text-sm text-gray-500">
+                Your transaction has been completed successfully.
+              </p>
+            </div>
+            
+            <div className="mb-4 rounded-lg bg-gray-50 p-4">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-gray-500">Transaction ID:</div>
+                <div className="font-medium">{transactionDetails?.transactionId}</div>
+                <div className="text-gray-500">Contacts Purchased:</div>
+                <div className="font-medium">{transactionDetails?.count}</div>
+              </div>
+            </div>
+            
+            <Button 
+              onClick={() => setPurchaseSuccess(false)} 
+              className="w-full bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Done
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
