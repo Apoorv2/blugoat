@@ -1014,7 +1014,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
       {showPaymentModal && (
         <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
           <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-xl">
             <StripePaymentForm
               contactCount={Number.parseInt(selectedContactCount, 10)}
               onSuccess={() => {
@@ -1034,7 +1034,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
       {showTopUpModal && (
         <Dialog open={showTopUpModal} onOpenChange={setShowTopUpModal}>
           <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-xl">
             <DialogTitle className="sr-only">Purchase Credits</DialogTitle>
             <StripePaymentForm
               contactCount={250}

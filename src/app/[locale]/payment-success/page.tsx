@@ -2,6 +2,7 @@
 'use client';
 
 import { CheckCircle } from 'lucide-react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -43,6 +44,15 @@ export default function PaymentSuccessPage({ params }: { params: { locale: strin
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-white p-4 text-black">
       <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 shadow-md">
+        <div className="mb-1 flex justify-center">
+          <Image
+            src="/blugoatLogo.png"
+            alt="Bluegoat Logo"
+            width={64}
+            height={64}
+            className="mb-1"
+          />
+        </div>
         <div className="mb-6 flex justify-center">
           <CheckCircle className="size-16 text-green-500" />
         </div>

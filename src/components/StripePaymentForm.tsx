@@ -16,6 +16,7 @@ import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-
 import { loadStripe } from '@stripe/stripe-js';
 import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, ArrowRight, CreditCard, Info, Lock } from 'lucide-react';
+import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 
 import { DialogTitle } from '@/components/ui/dialog';
@@ -317,6 +318,16 @@ export const StripePaymentForm = ({ onSuccess, onClose, contactCount }: StripePa
             transition={{ duration: 0.3 }}
             className="rounded-lg p-4"
           >
+            <div className="mb-2 flex justify-center">
+              <Image
+                src="/blugoatLogo.png"
+                alt="Bluegoat Logo"
+                width={64}
+                height={64}
+                className="mb-1"
+              />
+            </div>
+
             <DialogTitle className="mb-6 text-center text-xl font-bold">
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Top Up Your Credits
@@ -448,6 +459,16 @@ export const StripePaymentForm = ({ onSuccess, onClose, contactCount }: StripePa
             transition={{ duration: 0.3 }}
             className="rounded-lg p-4"
           >
+            <div className="mb-1 flex justify-center">
+              <Image
+                src="/blugoatLogo.png"
+                alt="Bluegoat Logo"
+                width={64}
+                height={64}
+                className="mb-1"
+              />
+            </div>
+
             <div className="mb-4 flex items-center">
               <button
                 onClick={handleBackToSelection}
