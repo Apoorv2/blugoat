@@ -334,7 +334,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     setHasStoredQuery(!!storedResults);
   }, []);
 
-  // First, let's update the checkForStoredQueries function to handle mobile Safari better
+  // Update the checkForStoredQueries function to also clear the warning
   const checkForStoredQueries = () => {
     try {
       // Try multiple storage approaches for iOS Safari compatibility
@@ -357,25 +357,41 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
       const hasAnyStorage = hasLocalStorage || hasSessionStorage || hasQueryInURL;
       setHasStoredQuery(hasAnyStorage);
       
+      // Also clear the warning message if we find stored query data
+      if (hasAnyStorage) {
+        setShowSearchWarning(false);
+      }
+      
       return hasAnyStorage;
     } catch (error) {
       console.error('Error checking stored queries:', error);
       // If we can't check storage, assume we have the data to avoid UI confusion
       setHasStoredQuery(true);
+      setShowSearchWarning(false);
       return true;
     }
   };
 
-  // Use the function in both mount and manual check
+  // Add an additional effect to clear the warning when lead query results change
   useEffect(() => {
-    checkForStoredQueries();
+    // This will run when the component mounts and when localStorage changes
+    const handleStorageChange = () => {
+      const hasQueryResults = !!localStorage.getItem('lead-query-results') 
+        || !!sessionStorage.getItem('lead-query-results');
+      if (hasQueryResults) {
+        setShowSearchWarning(false);
+      }
+    };
+
+    // Check immediately on mount
+    handleStorageChange();
+
+    // Listen for storage events (when another tab updates localStorage)
+    window.addEventListener('storage', handleStorageChange);
     
-    // Also add a periodic check in case data is added later
-    const intervalId = setInterval(() => {
-      checkForStoredQueries();
-    }, 5000); // Check every 5 seconds
-    
-    return () => clearInterval(intervalId);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // Handler for redirecting to lead query page
