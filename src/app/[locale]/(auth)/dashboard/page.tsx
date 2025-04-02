@@ -333,27 +333,35 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     setHasStoredQuery(!!storedResults);
   }, []);
 
-  // Add this more robust function to check for stored queries
+  // First, let's update the checkForStoredQueries function to handle mobile Safari better
   const checkForStoredQueries = () => {
     try {
-      // Try multiple storage keys and formats for better cross-device compatibility
-      const storedResults = localStorage.getItem('lead-query-results');
-      const storedQuery = localStorage.getItem('original-query-expression');
-      const hasResults = !!storedResults;
+      // Try multiple storage approaches for iOS Safari compatibility
+      const hasLocalStorage = !!localStorage.getItem('lead-query-results');
+      const hasSessionStorage = !!sessionStorage.getItem('lead-query-results');
+      const hasQueryInURL = window.location.search.includes('hasQuery=true');
+      
+      // Special handling for iOS Safari
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       
       console.log('Storage check:', { 
-        hasResults, 
-        resultsLength: storedResults?.length || 0,
-        hasOriginalQuery: !!storedQuery,
+        hasLocalStorage, 
+        hasSessionStorage,
+        hasQueryInURL,
+        isIOS,
+        userAgent: navigator.userAgent,
       });
       
-      // Update state based on what we found
-      setHasStoredQuery(hasResults);
-      return hasResults;
+      // Update state - any of these conditions should hide the warning
+      const hasAnyStorage = hasLocalStorage || hasSessionStorage || hasQueryInURL;
+      setHasStoredQuery(hasAnyStorage);
+      
+      return hasAnyStorage;
     } catch (error) {
-      // Handle storage access errors (can happen in private browsing or low storage)
       console.error('Error checking stored queries:', error);
-      return false;
+      // If we can't check storage, assume we have the data to avoid UI confusion
+      setHasStoredQuery(true);
+      return true;
     }
   };
 
