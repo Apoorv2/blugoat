@@ -192,6 +192,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
   const [isLoadingCreditBalance, setIsLoadingCreditBalance] = useState(false);
   const [hasStoredQuery, setHasStoredQuery] = useState(false);
   const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [showSearchWarning, setShowSearchWarning] = useState(false);
 
   // Load user preferences
   useEffect(() => {
@@ -423,18 +424,20 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
   // Make the purchase handler more resilient
   const handlePurchase = async () => {
     try {
-      setIsPurchasing(true);
-      
       // Check for query in multiple storage locations
       const hasLocalQuery = !!localStorage.getItem('lead-query-results');
       const hasSessionQuery = !!sessionStorage.getItem('lead-query-results');
       const queryAvailable = hasLocalQuery || hasSessionQuery;
       
       if (!queryAvailable) {
-        // Redirect to search without checking device type
-        router.push(`/${locale}/lead-query`);
+        // Instead of immediately redirecting, show the warning message
+        setShowSearchWarning(true);
         return;
       }
+      
+      // If we have a query, hide any warning that might be showing
+      setShowSearchWarning(false);
+      setIsPurchasing(true);
       
       // Get the query data from whichever storage has it
       const storedResults = localStorage.getItem('lead-query-results') 
@@ -830,7 +833,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
               </div>
 
               <div className="space-y-4">
-                {!hasStoredQuery && (
+                {showSearchWarning && (
                   <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
                     <div className="flex items-start">
                       <div className="mr-2 mt-0.5">
@@ -857,15 +860,13 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
                 <Button
                   onClick={handlePurchase}
                   className="w-full bg-blue-600 text-white hover:bg-blue-700"
-                  disabled={selectedContactCount === '0' || isPurchasing || !hasStoredQuery}
+                  disabled={selectedContactCount === '0' || isPurchasing}
                 >
                   {isPurchasing ? (
                     <>
                       <div className="mr-2 size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                       Processing...
                     </>
-                  ) : !hasStoredQuery ? (
-                    'Search for Audience member First'
                   ) : (
                     'Purchase Audience member'
                   )}
