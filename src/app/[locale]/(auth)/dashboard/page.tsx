@@ -440,18 +440,27 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
   // Make the purchase handler more resilient
   const handlePurchase = async () => {
     try {
-      // Check for query in multiple storage locations
+      // Check for query in multiple storage locations - WITH DETAILED LOGGING
       const hasLocalQuery = !!localStorage.getItem('lead-query-results');
       const hasSessionQuery = !!sessionStorage.getItem('lead-query-results');
       const queryAvailable = hasLocalQuery || hasSessionQuery;
       
+      console.log('Purchase attempt - storage check:', {
+        hasLocalQuery,
+        hasSessionQuery,
+        queryAvailable,
+        localStorageKeys: Object.keys(localStorage),
+        sessionStorageKeys: Object.keys(sessionStorage),
+      });
+      
       if (!queryAvailable) {
-        // Instead of immediately redirecting, show the warning message
+        console.log('No query available, showing warning');
         setShowSearchWarning(true);
         return;
       }
       
       // If we have a query, hide any warning that might be showing
+      console.log('Query available, proceeding with purchase');
       setShowSearchWarning(false);
       setIsPurchasing(true);
       
@@ -618,6 +627,11 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
     
     checkMobile();
   }, []);
+
+  // Add this function and button to allow manual dismissal of the warning
+  const dismissWarning = () => {
+    setShowSearchWarning(false);
+  };
 
   return (
     <div className="container mx-auto space-y-8 pb-16 pt-8">
@@ -851,24 +865,33 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
               <div className="space-y-4">
                 {showSearchWarning && (
                   <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-                    <div className="flex items-start">
-                      <div className="mr-2 mt-0.5">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 20 20" fill="currentColor">
-                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
+                    <div className="flex items-start justify-between">
+                      <div className="flex">
+                        <div className="mr-2 mt-0.5">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="size-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <p>
+                          You need to search for Audience member contacts first. Please go to the 
+                          {' '}
+                          <button 
+                            onClick={() => router.push(`/${locale}/lead-query`)}
+                            className="font-medium text-blue-600 underline hover:text-blue-800"
+                          >
+                            Lead Query
+                          </button>
+                          {' '}
+                          page to search before purchasing.
+                        </p>
                       </div>
-                      <p>
-                        You need to search for Audience member contacts first. Please go to the 
-                        {' '}
-                        <button 
-                          onClick={() => router.push(`/${locale}/lead-query`)}
-                          className="font-medium text-blue-600 underline hover:text-blue-800"
-                        >
-                          Lead Query
-                        </button>
-                        {' '}
-                        page to search before purchasing.
-                      </p>
+                      <button 
+                        onClick={dismissWarning} 
+                        className="ml-2 text-gray-500 hover:text-gray-700"
+                        aria-label="Dismiss"
+                      >
+                        ✕
+                      </button>
                     </div>
                   </div>
                 )}
