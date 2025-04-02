@@ -329,9 +329,25 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
 
   // Add this useEffect to check for stored queries on component load
   useEffect(() => {
-    // Check if there are stored query results when the component loads
-    const storedResults = localStorage.getItem('lead-query-results');
-    setHasStoredQuery(!!storedResults);
+    // Run the check on component mount
+    checkForStoredQueries();
+    
+    // Set up an event listener for storage changes
+    const handleStorageChange = () => {
+      checkForStoredQueries();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also run a periodic check for mobile Safari compatibility
+    const intervalId = setInterval(() => {
+      checkForStoredQueries();
+    }, 3000); // Check every 3 seconds
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(intervalId);
+    };
   }, []);
 
   // Update the checkForStoredQueries function to also clear the warning
@@ -373,26 +389,26 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
   };
 
   // Add an additional effect to clear the warning when lead query results change
-  useEffect(() => {
-    // This will run when the component mounts and when localStorage changes
-    const handleStorageChange = () => {
-      const hasQueryResults = !!localStorage.getItem('lead-query-results') 
-        || !!sessionStorage.getItem('lead-query-results');
-      if (hasQueryResults) {
-        setShowSearchWarning(false);
-      }
-    };
+  // useEffect(() => {
+  //   // This will run when the component mounts and when localStorage changes
+  //   const handleStorageChange = () => {
+  //     const hasQueryResults = !!localStorage.getItem('lead-query-results') 
+  //       || !!sessionStorage.getItem('lead-query-results');
+  //     if (hasQueryResults) {
+  //       setShowSearchWarning(false);
+  //     }
+  //   };
 
-    // Check immediately on mount
-    handleStorageChange();
+  //   // Check immediately on mount
+  //   handleStorageChange();
 
-    // Listen for storage events (when another tab updates localStorage)
-    window.addEventListener('storage', handleStorageChange);
+  //   // Listen for storage events (when another tab updates localStorage)
+  //   window.addEventListener('storage', handleStorageChange);
     
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
+  //   return () => {
+  //     window.removeEventListener('storage', handleStorageChange);
+  //   };
+  // }, []);
 
   // Handler for redirecting to lead query page
   const handleExploreLeads = () => {
@@ -440,17 +456,23 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
   // Make the purchase handler more resilient
   const handlePurchase = async () => {
     try {
-      // Check for query in multiple storage locations - WITH DETAILED LOGGING
+      // Check for query using multiple methods for iOS Safari
       const hasLocalQuery = !!localStorage.getItem('lead-query-results');
       const hasSessionQuery = !!sessionStorage.getItem('lead-query-results');
-      const queryAvailable = hasLocalQuery || hasSessionQuery;
+      const hasLeadsList = leads && leads.length > 0 && !hasEmptyResults;
+      const hasQueryCookie = document.cookie.includes('hasPerformedQuery=true');
+      const hasQueryParam = window.location.search.includes('hasQuery=true');
       
-      console.log('Purchase attempt - storage check:', {
+      const queryAvailable = hasLocalQuery || hasSessionQuery || hasLeadsList || hasQueryCookie || hasQueryParam;
+      
+      console.log('Comprehensive purchase check:', {
         hasLocalQuery,
         hasSessionQuery,
+        hasLeadsList,
+        hasQueryCookie,
+        hasQueryParam,
         queryAvailable,
-        localStorageKeys: Object.keys(localStorage),
-        sessionStorageKeys: Object.keys(sessionStorage),
+        leadsLength: leads?.length,
       });
       
       if (!queryAvailable) {
@@ -459,8 +481,8 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
         return;
       }
       
-      // If we have a query, hide any warning that might be showing
-      console.log('Query available, proceeding with purchase');
+      // If any of our checks pass, proceed with purchase
+      console.log('Query available via one of our detection methods, proceeding with purchase');
       setShowSearchWarning(false);
       setIsPurchasing(true);
       
@@ -471,12 +493,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
       // Continue with your existing purchase logic...
       // Get the stored query from localStorage
       const storedQuery = localStorage.getItem('original-query-expression');
-
-      if (!storedResults) {
-        console.error('No query found to purchase');
-        return;
-      }
-
+      
       // Use the original query expression if available, otherwise try to extract from results
       let queryExpression = '';
 
@@ -484,7 +501,7 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
         // Use the exact query that was sent to the preview API
         queryExpression = storedQuery;
         console.log('Using original stored query expression:', queryExpression);
-      } else {
+      } else if (storedResults) {
         const results = JSON.parse(storedResults) as ApiResponse;
         console.log('Parsed stored results:', results);
 
@@ -496,6 +513,10 @@ const DashboardPage = ({ params }: { params: { locale: string } }) => {
         }
 
         console.log('Extracted expression from results:', queryExpression);
+      } else if (leads && leads.length > 0) {
+        // As a fallback, create a simple query from the leads we have
+        queryExpression = JSON.stringify({ data: leads });
+        console.log('Created fallback query from leads:', queryExpression);
       }
 
       if (!queryExpression) {
