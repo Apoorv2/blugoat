@@ -52,6 +52,16 @@ export default authMiddleware({
     return intlMiddleware(req);
   },
   afterAuth: (auth, req) => {
+    // Only redirect the dashboard, not the homepage
+    if (req.nextUrl.pathname.includes('/dashboard')) {
+      // Check if user is authenticated
+      if (auth.userId) {
+        const locale = req.nextUrl.pathname.split('/')[1];
+        const formattedLocale = locale && AllLocales.includes(locale) ? locale : 'en';
+        return NextResponse.redirect(new URL(`/${formattedLocale}/lead-query`, req.url));
+      }
+    }
+
     // Debug logging
     console.log('MIDDLEWARE: Processing request for URL:', req.url);
 

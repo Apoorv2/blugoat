@@ -1,10 +1,13 @@
+/* eslint-disable react/no-array-index-key */
 /* eslint-disable unused-imports/no-unused-vars */
 
 'use client';
 
+import { useAuth, useUser } from '@clerk/nextjs';
 import { motion } from 'framer-motion';
 import { ArrowRight, CheckCircle, Database, Info, Mail, Search, Sparkles } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -23,6 +26,11 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
   const [showSuccess, setShowSuccess] = useState(false);
   const [showQueryForm, setShowQueryForm] = useState(true);
   const [quantity, setQuantity] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  // Get user information from Clerk
+  const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
 
   // Example queries for users to select
   const exampleQueries = [
@@ -57,21 +65,48 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
       return;
     }
 
+    // Reset any previous errors
+    setError(null);
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Get user info from Clerk
+      const userEmail = user?.primaryEmailAddress?.emailAddress || 'anonymous@example.com';
+      const userPhone = user?.primaryPhoneNumber?.phoneNumber;
+      const userId = user?.id;
 
-      // Store the query and quantity in localStorage
+      // Call our API to save the query to Supabase
+      const response = await fetch('/api/query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          queryPrompt: queryText,
+          quantity,
+          email: userEmail,
+          phoneNumber: userPhone || null,
+          userId: userId || 'anonymous', // Send the userId to API
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit query');
+      }
+
+      // Store the query in localStorage for any client-side needs
       localStorage.setItem('last_query', queryText);
       localStorage.setItem('audience_quantity', quantity);
+      localStorage.setItem('transaction_id', data.transactionId);
 
       // Hide the form and show the success animation
       setShowQueryForm(false);
       setShowSuccess(true);
     } catch (error) {
       console.error('Error submitting query:', error);
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
     }
@@ -87,13 +122,15 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
             animate={{ opacity: 1, scale: 1 }}
             className="mb-4 text-center"
           >
-            <Image
-              src="/blugoatLogo.png"
-              alt="Bluegoat Logo"
-              width={120}
-              height={40}
-              className="mx-auto mb-4"
-            />
+            <Link href="/">
+              <Image
+                src="/blugoatLogo.png"
+                alt="Bluegoat Logo"
+                width={120}
+                height={40}
+                className="mx-auto mb-4"
+              />
+            </Link>
 
             <h1 className="mb-2 text-2xl font-bold text-gray-900">
               Your Request is Being Processed
@@ -267,13 +304,15 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
     <div className="container mx-auto flex min-h-screen flex-col p-4">
       <div className="mb-8 flex flex-col items-center justify-center">
         <div className="mb-4 flex justify-center">
-          <Image
-            src="/blugoatLogo.png"
-            alt="Bluegoat Logo"
-            width={120}
-            height={40}
-            className="mb-2"
-          />
+          <Link href={`/${locale}`}>
+            <Image
+              src="/blugoatLogo.png"
+              alt="Bluegoat Logo"
+              width={120}
+              height={40}
+              className="mb-2"
+            />
+          </Link>
         </div>
         <h1 className="text-center text-2xl font-bold text-gray-900 md:text-3xl">
           Find Your Perfect Audience
