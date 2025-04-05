@@ -37,8 +37,8 @@ export default function PaymentSuccessPage({ params }: { params: { locale: strin
     }
   }, []);
 
-  const handleReturnToDashboard = () => {
-    router.push(`/${params.locale}/dashboard`);
+  const handleReturnToSearch = () => {
+    router.push(`/${params.locale}/lead-query`);
   };
 
   return (
@@ -78,8 +78,8 @@ export default function PaymentSuccessPage({ params }: { params: { locale: strin
         )}
 
         <div className="flex justify-center">
-          <Button onClick={handleReturnToDashboard} className="bg-blue-600 hover:bg-blue-700">
-            Return to Dashboard
+          <Button onClick={handleReturnToSearch} className="bg-blue-600 hover:bg-blue-700">
+            Search for Leads
           </Button>
         </div>
       </div>

@@ -10,7 +10,7 @@ export default function SignUpPage(props: { params: { locale: string } }) {
   const { locale } = props.params;
 
   // Define our URLs
-  const creditsUrl = `/${locale}/onboarding/credits?bypass_org_check=true&from_signup=true`;
+  const creditsUrl = `/${locale}/lead-query`;
   const dashboardUrl = `/${locale}/dashboard?bypass_org_check=true`;
 
   // Handle redirect after successful sign-up
@@ -27,9 +27,9 @@ export default function SignUpPage(props: { params: { locale: string } }) {
     <div className="p-8">
       <SignUp
         path="/sign-up"
-        afterSignUpUrl={creditsUrl}
+        afterSignUpUrl="/lead-query"
         signInUrl={`/${locale}/sign-in`}
-        redirectUrl={creditsUrl}
+        redirectUrl="/lead-query"
       />
     </div>
   );

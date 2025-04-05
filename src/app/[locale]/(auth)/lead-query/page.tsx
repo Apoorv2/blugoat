@@ -1,878 +1,491 @@
-/* eslint-disable style/brace-style */
-/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable unused-imports/no-unused-imports */
+/* eslint-disable react/no-array-index-key */
 /* eslint-disable unused-imports/no-unused-vars */
-/* eslint-disable no-console */
+
 'use client';
 
 import { useAuth, useUser } from '@clerk/nextjs';
-import { AnimatePresence, motion } from 'framer-motion';
-import { Search, XIcon } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowRight, CheckCircle, Database, Info, Mail, Search, Sparkles } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
+import { DashboardHeader } from '@/components/dashboard-header';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCities, useIndustries, useStates } from '@/utils/locationUtils';
+import { Textarea } from '@/components/ui/textarea';
 
-// Industry options
-const industries = [
-  { id: 'healthcare', label: 'Healthcare' },
-  { id: 'legal', label: 'Legal' },
-  { id: 'tech', label: 'Technology' },
-  { id: 'finance', label: 'Finance' },
-  { id: 'education', label: 'Education' },
-  { id: 'retail', label: 'Retail' },
-  { id: 'manufacturing', label: 'Manufacturing' },
-  { id: 'hospitality', label: 'Hospitality' },
-];
-
-// Occupation options
-const occupations = [
-  { id: 'doctors', label: 'Doctors' },
-  { id: 'lawyers', label: 'Lawyers' },
-  { id: 'engineers', label: 'Engineers' },
-  { id: 'teachers', label: 'Teachers' },
-  { id: 'managers', label: 'Managers' },
-  { id: 'executives', label: 'Executives' },
-  { id: 'salespeople', label: 'Sales People' },
-  { id: 'marketers', label: 'Marketers' },
-];
-
-// Indian States
-const states = [
-  { id: 'maharashtra', label: 'Maharashtra' },
-  { id: 'karnataka', label: 'Karnataka' },
-  { id: 'tamil_nadu', label: 'Tamil Nadu' },
-  { id: 'telangana', label: 'Telangana' },
-  { id: 'delhi', label: 'Delhi' },
-  { id: 'west_bengal', label: 'West Bengal' },
-  { id: 'gujarat', label: 'Gujarat' },
-  { id: 'uttar_pradesh', label: 'Uttar Pradesh' },
-];
-
-// Cities by State
-const citiesByState: Record<string, { id: string; label: string }[]> = {
-  maharashtra: [
-    { id: 'mumbai', label: 'Mumbai' },
-    { id: 'pune', label: 'Pune' },
-    { id: 'nagpur', label: 'Nagpur' },
-    { id: 'nashik', label: 'Nashik' },
-  ],
-  karnataka: [
-    { id: 'bengaluru', label: 'Bengaluru' },
-    { id: 'mysuru', label: 'Mysuru' },
-    { id: 'hubli', label: 'Hubli' },
-    { id: 'mangaluru', label: 'Mangaluru' },
-  ],
-  tamil_nadu: [
-    { id: 'chennai', label: 'Chennai' },
-    { id: 'coimbatore', label: 'Coimbatore' },
-    { id: 'madurai', label: 'Madurai' },
-    { id: 'tiruchirappalli', label: 'Tiruchirappalli' },
-  ],
-  telangana: [
-    { id: 'hyderabad', label: 'Hyderabad' },
-    { id: 'warangal', label: 'Warangal' },
-    { id: 'nizamabad', label: 'Nizamabad' },
-    { id: 'karimnagar', label: 'Karimnagar' },
-  ],
-  delhi: [
-    { id: 'new_delhi', label: 'New Delhi' },
-    { id: 'north_delhi', label: 'North Delhi' },
-    { id: 'south_delhi', label: 'South Delhi' },
-    { id: 'east_delhi', label: 'East Delhi' },
-  ],
-  west_bengal: [
-    { id: 'kolkata', label: 'Kolkata' },
-    { id: 'howrah', label: 'Howrah' },
-    { id: 'durgapur', label: 'Durgapur' },
-    { id: 'asansol', label: 'Asansol' },
-  ],
-  gujarat: [
-    { id: 'ahmedabad', label: 'Ahmedabad' },
-    { id: 'surat', label: 'Surat' },
-    { id: 'vadodara', label: 'Vadodara' },
-    { id: 'rajkot', label: 'Rajkot' },
-  ],
-  uttar_pradesh: [
-    { id: 'lucknow', label: 'Lucknow' },
-    { id: 'kanpur', label: 'Kanpur' },
-    { id: 'agra', label: 'Agra' },
-    { id: 'varanasi', label: 'Varanasi' },
-  ],
-};
-
-// Subfilter options
-const subfilterTypes = [
-  { id: 'income', label: 'Income Range', type: 'range' },
-  { id: 'age', label: 'Age Range', type: 'range' },
-  { id: 'gender', label: 'Gender', type: 'select' },
-  { id: 'business_size', label: 'Business Size', type: 'select' },
-  { id: 'experience', label: 'Years of Experience', type: 'range' },
-  { id: 'education', label: 'Education Level', type: 'select' },
-];
-
-// Options for select-type subfilters
-const subfilterOptions: Record<string, { id: string; label: string }[]> = {
-  gender: [
-    { id: 'male', label: 'Male' },
-    { id: 'female', label: 'Female' },
-    { id: 'other', label: 'Other' },
-  ],
-  business_size: [
-    { id: 'small', label: 'Small (1-50)' },
-    { id: 'medium', label: 'Medium (51-200)' },
-    { id: 'large', label: 'Large (201+)' },
-  ],
-  education: [
-    { id: 'high_school', label: 'High School' },
-    { id: 'bachelors', label: 'Bachelor\'s Degree' },
-    { id: 'masters', label: 'Master\'s Degree' },
-    { id: 'phd', label: 'PhD/Doctorate' },
-  ],
-};
-
-type SubfilterValue = {
-  min?: number;
-  max?: number;
-  value?: string;
-};
-
-type Subfilter = {
-  id: string;
-  type: string;
-  filterId: string;
-  value: SubfilterValue;
-};
-
-const LeadQueryPage = (props: { params: { locale: string } }) => {
+export default function LeadQueryPage({ params }: { params: { locale: string } }) {
+  const locale = params.locale;
   const router = useRouter();
-  const { locale } = props.params;
-  const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [queryType, setQueryType] = useState<'guided' | 'direct'>('guided');
-  const [directQuery, setDirectQuery] = useState('');
-  const [isDirectQuerySubmitted, setIsDirectQuerySubmitted] = useState(false);
+  const [queryText, setQueryText] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showQueryForm, setShowQueryForm] = useState(true);
+  const [quantity, setQuantity] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const [formData, setFormData] = useState({
-    state: '',
-    city: '',
-    industry: [] as string[],
-    selectedOccupations: [] as string[],
-    subfilters: [] as Subfilter[],
-  });
-
-  const [availableCities, setAvailableCities] = useState<{ id: string; label: string }[]>([]);
-  const [subfilterCount, setSubfilterCount] = useState(0);
-
-  // State handling
-  const [selectedState, setSelectedState] = useState<string>('');
-  const { states, loading: statesLoading } = useStates();
-  const { cities, loading: citiesLoading } = useCities(selectedState);
-  const { industries, loading: industriesLoading } = useIndustries();
-
-  // Add this hook to get the auth token
-  const { getToken } = useAuth();
+  // Get user information from Clerk
+  const { isLoaded, isSignedIn, signOut } = useAuth();
   const { user } = useUser();
 
-  // First effect: When state name changes, find the state ID and update selectedState
-  useEffect(() => {
-    if (formData.state) {
-      // Find the correct state ID from the selected state name
-      const selectedStateObj = states.find(s => s.name === formData.state);
-      if (selectedStateObj) {
-        setSelectedState(selectedStateObj.id);
+  // Example queries for users to select
+  const exampleQueries = [
+    'High net worth individuals in Mumbai',
+    'Software engineers in Bangalore with salary above 20LPA',
+    'Lawyers in Delhi with over 5 years experience',
+  ];
 
-        // Reset city when state changes
-        setFormData(prev => ({
-          ...prev,
-          city: '',
-        }));
+  // Audience quantity options with associated cost ranges
+  const quantityOptions = [
+    { value: '5000', label: '5,000 contacts', minCost: 10000, maxCost: 25000 },
+    { value: '10000', label: '10,000 contacts', minCost: 20000, maxCost: 50000 },
+    { value: '20000', label: '20,000 contacts', minCost: 40000, maxCost: 100000 },
+  ];
+
+  // Calculate the current cost range based on selected quantity
+  const selectedOption = quantityOptions.find(option => option.value === quantity);
+  const costRange = selectedOption
+    ? {
+        min: selectedOption.minCost,
+        max: selectedOption.maxCost,
       }
-    } else {
-      setSelectedState('');
-      setAvailableCities([]);
-    }
-    // Add console log to debug what state ID is being used
-    console.log(`Selected state: ${formData.state}, State ID: ${selectedState}`);
-  }, [formData.state, states]);
+    : { min: 0, max: 0 };
 
-  // Second effect: Update availableCities when cities change
-  useEffect(() => {
-    if (cities && cities.length > 0) {
-      // Map cities to the format needed for the dropdown
-      const cityOptions = cities.map(city => ({
-        id: city.id,
-        label: city.name,
-      }));
-      setAvailableCities(cityOptions);
-
-      // Debug what cities are being loaded
-      console.log(`Loaded ${cityOptions.length} cities for state ID: ${selectedState}`);
-    } else {
-      // If no cities are found, clear the list
-      setAvailableCities([]);
-    }
-  }, [cities, selectedState]);
-
-  const handleOccupationToggle = (occupationId: string) => {
-    setFormData((prev) => {
-      const current = [...prev.selectedOccupations];
-      if (current.includes(occupationId)) {
-        return {
-          ...prev,
-          selectedOccupations: current.filter(id => id !== occupationId),
-        };
-      } else {
-        return {
-          ...prev,
-          selectedOccupations: [...current, occupationId],
-        };
-      }
-    });
+  const handleExampleClick = (example: string) => {
+    setQueryText(example);
   };
 
-  const addSubfilter = (filterId: string) => {
-    const filterType = subfilterTypes.find(f => f.id === filterId)?.type || 'select';
-    const newFilter: Subfilter = {
-      id: `filter-${subfilterCount}`,
-      filterId,
-      type: filterType,
-      value: filterType === 'range' ? { min: 0, max: 100 } : { value: '' },
-    };
-
-    setFormData(prev => ({
-      ...prev,
-      subfilters: [...prev.subfilters, newFilter],
-    }));
-    setSubfilterCount(prev => prev + 1);
-  };
-
-  const removeSubfilter = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      subfilters: prev.subfilters.filter(f => f.id !== id),
-    }));
-  };
-
-  const updateSubfilterValue = (id: string, update: SubfilterValue) => {
-    setFormData(prev => ({
-      ...prev,
-      subfilters: prev.subfilters.map((filter) => {
-        if (filter.id === id) {
-          return {
-            ...filter,
-            value: { ...filter.value, ...update },
-          };
-        }
-        return filter;
-      }),
-    }));
-  };
-
-  const nextStep = () => {
-    setStep(prev => prev + 1);
-  };
-
-  const prevStep = () => {
-    setStep(prev => prev - 1);
-  };
-
-  const skipToEnd = () => {
-    localStorage.setItem('onboarding-data', JSON.stringify(formData));
-    localStorage.setItem('has_seen_credits', 'true');
-    router.push(`/${locale}/dashboard?bypass_org_check=true`);
-  };
-
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-
-    try {
-      // Build the query expression
-      const parts = [];
-
-      // Add industries - convert IDs to human-readable names
-      if (formData.industry.length > 0) {
-        const industryNames = formData.industry.map((id) => {
-          const industry = industries.find(ind => ind.id === id);
-          return industry ? `"${industry.name}"` : '';
-        }).filter(Boolean);
-
-        if (industryNames.length === 1) {
-          parts.push(industryNames[0]);
-        } else if (industryNames.length > 1) {
-          parts.push(`(${industryNames.join(' OR ')})`);
-        }
-      }
-
-      // Add city if selected (and skip state if city is selected)
-      if (formData.city) {
-        // Find the city object by ID to get its name
-        const selectedCity = availableCities.find(c => c.id === formData.city);
-        if (selectedCity) {
-          parts.push(`("${selectedCity.label}")`);
-        }
-      }
-      // Only add state if no city is selected
-      else if (formData.state) {
-        parts.push(`("${formData.state}")`);
-      }
-
-      const queryExpression = parts.join(' AND ');
-
-      // Store the exact query expression for later use
-      localStorage.setItem('original-query-expression', queryExpression);
-
-      console.log('Submitting query:', queryExpression);
-
-      // Create the request body
-      const requestBody = {
-        expression: queryExpression,
-        includeMetadata: true,
-        includeContacts: true,
-        page: 1,
-      };
-
-      // Get the auth token
-      const token = await getToken();
-
-      // Call the API endpoint with authorization
-      const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/individuals/preview', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('API response:', data);
-
-      // Store results with user-specific key
-      const userId = user.id;
-      localStorage.setItem(`lead-query-results-${userId}`, JSON.stringify({
-        success: true,
-        data: data.data,
-        pagination: data.pagination,
-        query: data.query,
-        meta: data.meta,
-        userSelections: {
-          state: formData.state,
-          city: formData.city,
-          industry: formData.industry,
-        },
-      }));
-
-      // Redirect to dashboard
-      router.push(`/${locale}/dashboard`);
-    } catch (error) {
-      console.error('Error submitting query:', error);
-      // Handle error - you could show an error notification here
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const getFilterLabel = (filterId: string) => {
-    return subfilterTypes.find(f => f.id === filterId)?.label || filterId;
-  };
-
-  const renderSubfilter = (filter: Subfilter) => {
-    const filterLabel = getFilterLabel(filter.filterId);
-
-    if (filter.type === 'range') {
-      return (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>{filterLabel}</Label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => removeSubfilter(filter.id)}
-              className="size-7 p-0 text-gray-500 hover:text-red-500"
-            >
-              <XIcon className="size-4" />
-            </Button>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Input
-              type="number"
-              placeholder="Min"
-              value={filter.value.min}
-              onChange={e => updateSubfilterValue(filter.id, { min: Number.parseInt(e.target.value) })}
-              className="w-1/2"
-            />
-            <span>-</span>
-            <Input
-              type="number"
-              placeholder="Max"
-              value={filter.value.max}
-              onChange={e => updateSubfilterValue(filter.id, { max: Number.parseInt(e.target.value) })}
-              className="w-1/2"
-            />
-          </div>
-        </div>
-      );
-    }
-
-    if (filter.type === 'select') {
-      const options = subfilterOptions[filter.filterId] || [];
-      return (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>{filterLabel}</Label>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => removeSubfilter(filter.id)}
-              className="size-7 p-0 text-gray-500 hover:text-red-500"
-            >
-              <XIcon className="size-4" />
-            </Button>
-          </div>
-          <Select
-            value={filter.value.value}
-            onValueChange={value => updateSubfilterValue(filter.id, { value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={`Select ${filterLabel}`} />
-            </SelectTrigger>
-            <SelectContent>
-              {options.map(option => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      );
-    }
-
-    return null;
-  };
-
-  const handleDirectQuerySubmit = async () => {
-    if (!directQuery.trim()) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!queryText.trim() || !quantity) {
       return;
     }
 
+    // Reset any previous errors
+    setError(null);
     setIsSubmitting(true);
 
     try {
-      // First test if the test API is working
-      console.log('Testing API connection...');
+      // Get user info from Clerk
+      const userEmail = user?.primaryEmailAddress?.emailAddress || 'anonymous@example.com';
+      const userPhone = user?.primaryPhoneNumber?.phoneNumber;
+      const userId = user?.id;
 
-      try {
-        const testResponse = await fetch('/api/test', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ test: 'Testing API connection' }),
-        });
-
-        const testData = await testResponse.json();
-        console.log('Test API response:', testData);
-      } catch (error) {
-        console.error('Test API failed:', error);
-      }
-
-      // Now try the actual query
-      console.log('Submitting query:', directQuery);
-
-      // Use your curl command directly in the client (not recommended for production)
-      const response = await fetch('https://blugoat-api-310650732642.us-central1.run.app/api/query/natural-language', {
+      // Call our API to save the query to Supabase
+      const response = await fetch('/api/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: directQuery,
-          includeContacts: true,
-          includeMetadata: true,
+          queryPrompt: queryText,
+          quantity,
+          email: userEmail,
+          phoneNumber: userPhone || null,
+          userId: userId || 'anonymous', // Send the userId to API
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`Failed to fetch leads: ${response.status}`);
+        throw new Error(data.error || 'Failed to submit query');
       }
 
-      const data = await response.json();
-      console.log('API response received:', data);
+      // Store the query in localStorage for any client-side needs
+      localStorage.setItem('last_query', queryText);
+      localStorage.setItem('audience_quantity', quantity);
+      localStorage.setItem('transaction_id', data.transactionId);
 
-      // Save to localStorage so dashboard can access it
-      localStorage.setItem('lead-query-results', JSON.stringify(data));
-      localStorage.setItem('direct-query', directQuery);
-
-      // Redirect to dashboard
-      router.push(`/${locale}/dashboard`);
+      // Hide the form and show the success animation
+      setShowQueryForm(false);
+      setShowSuccess(true);
     } catch (error) {
       console.error('Error submitting query:', error);
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-white p-4">
-      <motion.div
-        className="w-full max-w-3xl"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', damping: 25 }}
-      >
-        <Card className="overflow-hidden border-t-4 border-t-blue-600 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 pb-8">
-            <div className="mb-2 flex justify-between">
-              <CardTitle className="text-2xl text-blue-800">
-                Help Us Find Your Perfect Custom Audience
-              </CardTitle>
-              <div className="flex items-center space-x-1">
-                {[1, 2].map(num => (
-                  <motion.div
-                    key={num}
-                    className={`h-2 w-8 rounded ${
-                      step >= num ? 'bg-blue-600' : 'bg-gray-200'
-                    }`}
-                    initial={{ opacity: 0.6 }}
-                    animate={{ opacity: step >= num ? 1 : 0.6 }}
-                  />
-                ))}
-              </div>
-            </div>
-            <CardDescription className="text-blue-600">
-              {step === 1 && 'Tell us where you\'re looking for Audience'}
-              {step === 2 && 'What category are you targeting?'}
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="p-6">
-            <Tabs
-              value={queryType}
-              className="mt-4"
-              onValueChange={v => setQueryType(v as 'guided' | 'direct')}
+  // If we've successfully submitted, show the success animation
+  if (showSuccess) {
+    return (
+      <>
+        <DashboardHeader
+          locale={locale}
+          user={user}
+          signOut={signOut}
+          router={router}
+        />
+        <div className="container mx-auto flex min-h-[calc(100vh-64px)] flex-col items-center justify-center p-4">
+          <div className="flex max-w-2xl flex-col items-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-4 text-center"
             >
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="guided">Guided Search</TabsTrigger>
-                <TabsTrigger value="direct">Direct Query</TabsTrigger>
-              </TabsList>
+              <Link href="/" className="mx-auto block w-fit">
+                <Image
+                  src="/blugoatLogo.png"
+                  alt="Bluegoat Logo"
+                  width={120}
+                  height={40}
+                  className="mx-auto"
+                />
+              </Link>
 
-              <TabsContent value="direct" className="m-0">
-                <CardContent className="pt-4">
-                  <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900">Direct Query</h3>
-                    <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-600">
-                      Coming Soon
-                    </span>
-                  </div>
+              <h1 className="mb-2 text-2xl font-bold text-gray-900">
+                Your Request is Being Processed
+              </h1>
+              <p className="mx-auto mb-2 max-w-xl text-base text-gray-600">
+                Our AI is searching for your perfect audience of
+                {' '}
+                {Number.parseInt(quantity).toLocaleString()}
+                {' '}
+                contacts based on your criteria.
+                We'll email your tailored results within 2-4 hours.
+              </p>
 
-                  <div className="rounded-lg border border-dashed border-blue-300 bg-blue-50 p-6 text-center">
-                    <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-blue-100">
-                      <Search className="size-8 text-blue-600" />
-                    </div>
+              {/* Support link moved above animation */}
+              <p className="mx-auto mb-4 text-sm text-gray-600">
+                Have questions about your query?
+                {' '}
+                <Link href={`/${locale}/support`} className="text-blue-600 hover:underline">
+                  Visit our support page
+                </Link>
+              </p>
+            </motion.div>
+            <div className="relative mb-6 flex size-48 items-center justify-center">
+              {/* Pulsing background circles */}
+              <motion.div
+                className="absolute rounded-full bg-blue-100"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.3, 0.7, 0.3],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+                style={{ width: '100%', height: '100%' }}
+              />
 
-                    <h3 className="mb-2 text-lg font-medium text-blue-800">
-                      Natural Language Search
-                    </h3>
+              <motion.div
+                className="absolute rounded-full bg-blue-200"
+                animate={{
+                  scale: [1.1, 1.3, 1.1],
+                  opacity: [0.4, 0.6, 0.4],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                  delay: 0.5,
+                }}
+                style={{ width: '85%', height: '85%' }}
+              />
 
-                    <p className="mb-4 text-sm text-blue-700">
-                      Soon you'll be able to search for your ideal audience using plain language. Simply describe what you're looking for, and we'll handle the rest.
-                    </p>
+              <motion.div
+                className="absolute rounded-full bg-blue-300"
+                animate={{
+                  scale: [1.2, 1.4, 1.2],
+                  opacity: [0.3, 0.5, 0.3],
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                  delay: 1,
+                }}
+                style={{ width: '65%', height: '65%' }}
+              />
 
-                    <div className="mt-2 rounded-md bg-white/60 p-3 text-sm text-gray-500">
-                      <p className="italic">Example: "Find me software engineers in Mumbai with 5+ years of experience"</p>
-                    </div>
-                  </div>
-                </CardContent>
-
-                <CardFooter className="flex justify-between border-t bg-gradient-to-r from-gray-50 to-slate-50 p-6">
-                  <Button variant="ghost" onClick={() => router.push(`/${locale}/dashboard`)}>
-                    Go to Dashboard
-                  </Button>
-                  <Button
-                    onClick={() => setQueryType('guided')}
-                    className="bg-blue-600 hover:bg-blue-700"
-                  >
-                    Try Guided Search
-                  </Button>
-                </CardFooter>
-              </TabsContent>
-
-              <TabsContent value="guided" className="m-3">
-                <AnimatePresence mode="wait">
-                  {step === 1 && (
-                    <motion.div
-                      key="step1"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ type: 'spring', damping: 25 }}
-                      className="space-y-6"
-                    >
-                      <div className="mb-4 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
-                        <p className="font-medium">Quick Guide:</p>
-                        <ul className="mt-1 list-inside list-disc space-y-1 pl-2">
-                          <li>Select a state and city to narrow your search, or leave them unselected for broader results</li>
-                          <li>You can click "Next" at any time to continue</li>
-                          <li>Or click "Go to Dashboard" if you prefer to skip this process</li>
-                        </ul>
-                      </div>
-                      <div className="space-y-4">
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="state" className="mb-1">State</Label>
-                            <span className="text-xs text-gray-500">(Optional - select or skip)</span>
-                          </div>
-                          <Select
-                            value={formData.state}
-                            onValueChange={(value) => {
-                              const stateValue = value === 'all' ? '' : value;
-                              setFormData(prev => ({
-                                ...prev,
-                                state: stateValue,
-                                city: '', // Reset city when state changes
-                              }));
-                            }}
-                            disabled={statesLoading}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="All States" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All States</SelectItem>
-                              {states.map(state => (
-                                <SelectItem key={state.id} value={state.name}>
-                                  {state.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="mt-1 text-xs text-gray-500">
-                            Filter by state or leave as "All States" to search nationwide
-                          </p>
-                        </div>
-
-                        <div>
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="city" className="mb-1">City</Label>
-                            <span className="text-xs text-gray-500">(Optional - select or skip)</span>
-                          </div>
-                          <Select
-                            disabled={!formData.state || citiesLoading}
-                            value={formData.city}
-                            onValueChange={(value) => {
-                              setFormData(prev => ({
-                                ...prev,
-                                city: value === 'all_cities' ? '' : value,
-                              }));
-                            }}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder={!formData.state ? 'Select state first' : 'All Cities'} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all_cities">
-                                All Cities in
-                                {' '}
-                                {formData.state || 'selected state'}
-                              </SelectItem>
-                              {citiesLoading
-                                ? (
-                                    <SelectItem value="loading" disabled>Loading cities...</SelectItem>
-                                  )
-                                : availableCities.length > 0
-                                  ? (
-                                      availableCities.map(city => (
-                                        <SelectItem key={city.id} value={city.id}>
-                                          {city.label}
-                                        </SelectItem>
-                                      ))
-                                    )
-                                  : (
-                                      <SelectItem value="no-cities" disabled>No cities available</SelectItem>
-                                    )}
-                            </SelectContent>
-                          </Select>
-                          <p className="mt-1 text-xs text-gray-500">
-                            Narrow down to a specific city or leave unselected to include all cities
-                          </p>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {step === 2 && (
-                    <motion.div
-                      key="step2"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ type: 'spring', damping: 25 }}
-                      className="space-y-6"
-                    >
-                      <div className="space-y-4">
-                        <div className="mb-4 flex items-center justify-between">
-                          <Label>Target Categories</Label>
-                          <span className="text-xs font-medium text-blue-600">
-                            {formData.industry.length}
-                            {' '}
-                            selected
-                          </span>
-                        </div>
-
-                        <div className="mb-2 rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
-                          <p>Please select at least one category that best describes your target audience.</p>
-                          <p className="mt-1 text-xs">You can select multiple categories to broaden your search.</p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          {industriesLoading
-                            ? (
-                                <div className="col-span-2 flex justify-center py-4">
-                                  <div className="size-6 animate-spin rounded-full border-2 border-t-transparent" />
-                                </div>
-                              )
-                            : (
-                                industries.map(industry => (
-                                  <Button
-                                    key={industry.id}
-                                    type="button"
-                                    variant={formData.industry.includes(industry.id) ? 'default' : 'outline'}
-                                    className={`justify-start ${
-                                      formData.industry.includes(industry.id)
-                                        ? 'bg-blue-600 text-white hover:bg-blue-700'
-                                        : 'border-gray-200 hover:border-blue-300 hover:text-blue-600'
-                                    }`}
-                                    onClick={() => {
-                                      setFormData((prev) => {
-                                        // If already selected, remove it; otherwise, add it
-                                        if (prev.industry.includes(industry.id)) {
-                                          return {
-                                            ...prev,
-                                            industry: prev.industry.filter(id => id !== industry.id),
-                                          };
-                                        } else {
-                                          return {
-                                            ...prev,
-                                            industry: [...prev.industry, industry.id],
-                                          };
-                                        }
-                                      });
-                                    }}
-                                  >
-                                    <span className="ml-2">{industry.name}</span>
-                                  </Button>
-                                ))
-                              )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Step 3 commented out - target occupation no longer needed
-                    {step === 3 && (
-                      <motion.div
-                        key="step3"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        transition={{ type: 'spring', damping: 25 }}
-                        className="space-y-6"
-                      >
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-base">Target Occupations</Label>
-                            <div className="flex items-center gap-2">
-                              <div className="text-sm text-blue-600">{selectedOccupations.length} selected</div>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            {occupations.map((occupation) => (
-                              <div
-                                key={occupation.id}
-                                className={`
-                                  flex cursor-pointer items-center justify-between rounded-lg border p-3
-                                  ${selectedOccupations.includes(occupation.label) ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:bg-gray-50'}
-                                `}
-                                onClick={() => toggleOccupation(occupation.label)}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <div className="flex-1">
-                                    <p className="text-sm font-medium">{occupation.label}</p>
-                                  </div>
-                                </div>
-                                <Checkbox
-                                  checked={selectedOccupations.includes(occupation.label)}
-                                  onCheckedChange={() => toggleOccupation(occupation.label)}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  */}
-                </AnimatePresence>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-
-          <CardFooter className="flex justify-between border-t bg-gray-50 px-6 py-4">
-            {step === 1
-              ? (
-                  <Button
-                    variant="outline"
-                    onClick={() => router.push(`/${locale}/dashboard`)}
-                  >
-                    Go to Dashboard
-                  </Button>
-                )
-              : (
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep(step - 1)}
-                    disabled={step === 1}
-                  >
-                    Back
-                  </Button>
-                )}
-
-            <div className="flex gap-3">
-              <Button
-                onClick={() => step < 2 ? setStep(step + 1) : handleSubmit()}
-                disabled={isSubmitting || (step === 2 && formData.industry.length === 0)}
-                className="bg-blue-600 text-white hover:bg-blue-700"
+              {/* Center icon that rotates */}
+              <motion.div
+                className="relative z-10 flex size-20 items-center justify-center rounded-full bg-white shadow-lg"
+                animate={{ rotate: 360 }}
+                transition={{
+                  duration: 20,
+                  repeat: Infinity,
+                  ease: 'linear',
+                }}
               >
-                {step < 2 ? 'Next' : 'Find Audience'}
-                {isSubmitting && (
-                  <motion.div
-                    className="ml-2 size-4 animate-spin rounded-full border-2 border-t-transparent"
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                  />
-                )}
+                <Search className="size-10 text-blue-500" />
+              </motion.div>
+
+              {/* Orbiting elements */}
+              <motion.div
+                className="absolute"
+                animate={{
+                  rotate: 360,
+                }}
+                transition={{
+                  duration: 15,
+                  repeat: Infinity,
+                  ease: 'linear',
+                }}
+              >
+                <motion.div
+                  className="relative -left-32 flex size-12 items-center justify-center rounded-full bg-white shadow-md"
+                >
+                  <Database className="size-6 text-blue-400" />
+                </motion.div>
+              </motion.div>
+
+              <motion.div
+                className="absolute"
+                animate={{
+                  rotate: -360,
+                }}
+                transition={{
+                  duration: 18,
+                  repeat: Infinity,
+                  ease: 'linear',
+                  delay: 1,
+                }}
+              >
+                <motion.div
+                  className="relative -top-28 flex size-12 items-center justify-center rounded-full bg-white shadow-md"
+                >
+                  <Mail className="size-6 text-green-500" />
+                </motion.div>
+              </motion.div>
+
+              <motion.div
+                className="absolute"
+                animate={{
+                  rotate: 360,
+                }}
+                transition={{
+                  duration: 12,
+                  repeat: Infinity,
+                  ease: 'linear',
+                  delay: 2,
+                }}
+              >
+                <motion.div
+                  className="relative right-24 top-24 flex size-12 items-center justify-center rounded-full bg-white shadow-md"
+                >
+                  <CheckCircle className="size-6 text-green-500" />
+                </motion.div>
+              </motion.div>
+            </div>
+
+            <div className="w-full text-center">
+              <motion.div
+                className="mx-auto mb-3 h-2 w-48 overflow-hidden rounded-full bg-gray-200"
+              >
+                <motion.div
+                  className="h-full bg-blue-500"
+                  initial={{ width: '0%' }}
+                  animate={{ width: '100%' }}
+                  transition={{
+                    duration: 8,
+                    ease: 'easeInOut',
+                    repeat: Infinity,
+                  }}
+                />
+              </motion.div>
+
+              <p className="mb-4 text-xs text-gray-500">
+                Our AI is analyzing data points across multiple sources to find your perfect audience match
+              </p>
+
+              <Button
+                onClick={() => {
+                  setShowSuccess(false);
+                  setShowQueryForm(true);
+                  setQueryText('');
+                }}
+                variant="outline"
+                size="sm"
+              >
+                Start a New Query
               </Button>
             </div>
-          </CardFooter>
-        </Card>
-      </motion.div>
-    </div>
-  );
-};
+          </div>
+        </div>
+      </>
+    );
+  }
 
-export default LeadQueryPage;
+  // Otherwise show the query form
+  return (
+    <>
+      <DashboardHeader
+        locale={locale}
+        user={user}
+        signOut={signOut}
+        router={router}
+      />
+      <div className="container  flex min-h-[calc(100vh-64px)] flex-col p-4">
+        <div className=" flex flex-col items-center justify-center">
+          <div className=" flex justify-center">
+            <Link href={`/${locale}`}>
+              <Image
+                src="/blugoatLogo.png"
+                alt="Bluegoat Logo"
+                width={100}
+                height={40}
+                className="mb-2"
+              />
+            </Link>
+          </div>
+          <h1 className="text-center text-2xl font-bold text-gray-900 md:text-3xl">
+            Find Your Perfect Audience
+          </h1>
+          <p className="mt-2 max-w-2xl text-center text-gray-600">
+            Describe the audience you're looking for and our AI will find the right people for your campaign
+          </p>
+
+          {/* New info alert about query limits */}
+          <Alert className="mt-4 max-w-2xl border-blue-100 bg-blue-50">
+            <Info className="size-4 text-blue-600" />
+            <AlertDescription className="text-sm text-blue-800">
+              <span className="font-medium">Daily Query Limit:</span>
+              {' '}
+              You have 3 audience queries available per day.
+              Once processed, a sample of 50 your matched data will be sent to your registered email within 2-4 hours.
+              You can purchase the full dataset if the sample meets your requirements.
+            </AlertDescription>
+          </Alert>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="mx-auto max-w-3xl">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Sparkles className="size-5 text-blue-500" />
+                <CardTitle>Audience Query</CardTitle>
+              </div>
+              <CardDescription>
+                Be specific about location, industry, job titles or other criteria
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-6">
+                  <div>
+                    <label htmlFor="query" className="mb-2 block font-medium">
+                      Describe your target audience
+                    </label>
+                    <Textarea
+                      id="query"
+                      placeholder="Example: Financial advisors in Mumbai with 5+ years experience"
+                      className="min-h-[120px]"
+                      value={queryText}
+                      onChange={e => setQueryText(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <p className="mb-2 font-medium">Try one of these examples:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {exampleQueries.map((example, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => handleExampleClick(example)}
+                          className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm text-blue-700 hover:bg-blue-100"
+                        >
+                          {example}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="quantity" className="mb-2 block font-medium">
+                      How many contacts do you need?
+                    </Label>
+                    <Select
+                      value={quantity}
+                      onValueChange={setQuantity}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select the number of contacts" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {quantityOptions.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Pricing: ₹2-5 per contact depending on complexity and specificity.
+                    </p>
+                  </div>
+                </div>
+              </form>
+            </CardContent>
+
+            <CardFooter className="flex justify-between border-t bg-gray-50 px-6 py-4">
+              {/* Only show estimated cost if a quantity is selected */}
+              {quantity
+                ? (
+                    <div className="text-sm font-medium text-gray-700">
+                      Estimated cost: ₹
+                      {costRange.min.toLocaleString()}
+                      {' '}
+                      - ₹
+                      {costRange.max.toLocaleString()}
+                    </div>
+                  )
+                : (
+                    <div className="text-sm text-gray-500">
+                      Select a quantity to see estimated cost
+                    </div>
+                  )}
+
+              <Button
+                type="submit"
+                onClick={handleSubmit}
+                disabled={isSubmitting || !queryText.trim() || !quantity}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {isSubmitting
+                  ? (
+                      <>
+                        <span className="mr-2 size-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                        Processing...
+                      </>
+                    )
+                  : (
+                      <>
+                        Find Audience
+                        <ArrowRight className="ml-2 size-4" />
+                      </>
+                    )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      </div>
+    </>
+  );
+}
