@@ -1,3 +1,4 @@
+/* eslint-disable unused-imports/no-unused-imports */
 /* eslint-disable react/no-array-index-key */
 /* eslint-disable unused-imports/no-unused-vars */
 
@@ -11,9 +12,19 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { DashboardHeader } from '@/components/dashboard-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,14 +40,14 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
   const [error, setError] = useState<string | null>(null);
 
   // Get user information from Clerk
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, signOut } = useAuth();
   const { user } = useUser();
 
   // Example queries for users to select
   const exampleQueries = [
     'High net worth individuals in Mumbai',
     'Software engineers in Bangalore with salary above 20LPA',
-    'Real estate agents in Delhi with over 5 years experience',
+    'Lawyers in Delhi with over 5 years experience',
   ];
 
   // Audience quantity options with associated cost ranges
@@ -115,352 +126,366 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
   // If we've successfully submitted, show the success animation
   if (showSuccess) {
     return (
-      <div className="container mx-auto flex min-h-screen flex-col items-center justify-center p-4">
-        <div className="flex max-w-2xl flex-col items-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-4 text-center"
-          >
-            <Link href="/">
-              <Image
-                src="/blugoatLogo.png"
-                alt="Bluegoat Logo"
-                width={120}
-                height={40}
-                className="mx-auto mb-4"
-              />
-            </Link>
-
-            <h1 className="mb-2 text-2xl font-bold text-gray-900">
-              Your Request is Being Processed
-            </h1>
-            <p className="mx-auto mb-4 max-w-xl text-base text-gray-600">
-              Our AI is searching for your perfect audience of
-              {' '}
-              {Number.parseInt(quantity).toLocaleString()}
-              {' '}
-              contacts based on your criteria.
-              We'll email your tailored results within 2-4 hours.
-            </p>
-          </motion.div>
-
-          <div className="relative mb-6 flex size-48 items-center justify-center">
-            {/* Pulsing background circles */}
+      <>
+        <DashboardHeader
+          locale={locale}
+          user={user}
+          signOut={signOut}
+          router={router}
+        />
+        <div className="container mx-auto flex min-h-[calc(100vh-64px)] flex-col items-center justify-center p-4">
+          <div className="flex max-w-2xl flex-col items-center">
             <motion.div
-              className="absolute rounded-full bg-blue-100"
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.3, 0.7, 0.3],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-              style={{ width: '100%', height: '100%' }}
-            />
-
-            <motion.div
-              className="absolute rounded-full bg-blue-200"
-              animate={{
-                scale: [1.1, 1.3, 1.1],
-                opacity: [0.4, 0.6, 0.4],
-              }}
-              transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: 'easeInOut',
-                delay: 0.5,
-              }}
-              style={{ width: '85%', height: '85%' }}
-            />
-
-            <motion.div
-              className="absolute rounded-full bg-blue-300"
-              animate={{
-                scale: [1.2, 1.4, 1.2],
-                opacity: [0.3, 0.5, 0.3],
-              }}
-              transition={{
-                duration: 5,
-                repeat: Infinity,
-                ease: 'easeInOut',
-                delay: 1,
-              }}
-              style={{ width: '65%', height: '65%' }}
-            />
-
-            {/* Center icon that rotates */}
-            <motion.div
-              className="relative z-10 flex size-20 items-center justify-center rounded-full bg-white shadow-lg"
-              animate={{ rotate: 360 }}
-              transition={{
-                duration: 20,
-                repeat: Infinity,
-                ease: 'linear',
-              }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-4 text-center"
             >
-              <Search className="size-10 text-blue-500" />
+              <Link href="/" className="mx-auto block w-fit">
+                <Image
+                  src="/blugoatLogo.png"
+                  alt="Bluegoat Logo"
+                  width={120}
+                  height={40}
+                  className="mx-auto"
+                />
+              </Link>
+
+              <h1 className="mb-2 text-2xl font-bold text-gray-900">
+                Your Request is Being Processed
+              </h1>
+              <p className="mx-auto mb-2 max-w-xl text-base text-gray-600">
+                Our AI is searching for your perfect audience of
+                {' '}
+                {Number.parseInt(quantity).toLocaleString()}
+                {' '}
+                contacts based on your criteria.
+                We'll email your tailored results within 2-4 hours.
+              </p>
+
+              {/* Support link moved above animation */}
+              <p className="mx-auto mb-4 text-sm text-gray-600">
+                Have questions about your query?
+                {' '}
+                <Link href={`/${locale}/support`} className="text-blue-600 hover:underline">
+                  Visit our support page
+                </Link>
+              </p>
             </motion.div>
-
-            {/* Orbiting elements */}
-            <motion.div
-              className="absolute"
-              animate={{
-                rotate: 360,
-              }}
-              transition={{
-                duration: 15,
-                repeat: Infinity,
-                ease: 'linear',
-              }}
-            >
+            <div className="relative mb-6 flex size-48 items-center justify-center">
+              {/* Pulsing background circles */}
               <motion.div
-                className="relative -left-32 flex size-12 items-center justify-center rounded-full bg-white shadow-md"
-              >
-                <Database className="size-6 text-blue-400" />
-              </motion.div>
-            </motion.div>
-
-            <motion.div
-              className="absolute"
-              animate={{
-                rotate: -360,
-              }}
-              transition={{
-                duration: 18,
-                repeat: Infinity,
-                ease: 'linear',
-                delay: 1,
-              }}
-            >
-              <motion.div
-                className="relative -top-28 flex size-12 items-center justify-center rounded-full bg-white shadow-md"
-              >
-                <Mail className="size-6 text-green-500" />
-              </motion.div>
-            </motion.div>
-
-            <motion.div
-              className="absolute"
-              animate={{
-                rotate: 360,
-              }}
-              transition={{
-                duration: 12,
-                repeat: Infinity,
-                ease: 'linear',
-                delay: 2,
-              }}
-            >
-              <motion.div
-                className="relative right-24 top-24 flex size-12 items-center justify-center rounded-full bg-white shadow-md"
-              >
-                <CheckCircle className="size-6 text-green-500" />
-              </motion.div>
-            </motion.div>
-          </div>
-
-          <div className="w-full text-center">
-            <motion.div
-              className="mx-auto mb-3 h-2 w-48 overflow-hidden rounded-full bg-gray-200"
-            >
-              <motion.div
-                className="h-full bg-blue-500"
-                initial={{ width: '0%' }}
-                animate={{ width: '100%' }}
-                transition={{
-                  duration: 8,
-                  ease: 'easeInOut',
-                  repeat: Infinity,
+                className="absolute rounded-full bg-blue-100"
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.3, 0.7, 0.3],
                 }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+                style={{ width: '100%', height: '100%' }}
               />
-            </motion.div>
 
-            <p className="mb-4 text-xs text-gray-500">
-              Our AI is analyzing data points across multiple sources to find your perfect audience match
-            </p>
+              <motion.div
+                className="absolute rounded-full bg-blue-200"
+                animate={{
+                  scale: [1.1, 1.3, 1.1],
+                  opacity: [0.4, 0.6, 0.4],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                  delay: 0.5,
+                }}
+                style={{ width: '85%', height: '85%' }}
+              />
 
-            <Button
-              onClick={() => {
-                setShowSuccess(false);
-                setShowQueryForm(true);
-                setQueryText('');
-              }}
-              variant="outline"
-              size="sm"
-            >
-              Start a New Query
-            </Button>
+              <motion.div
+                className="absolute rounded-full bg-blue-300"
+                animate={{
+                  scale: [1.2, 1.4, 1.2],
+                  opacity: [0.3, 0.5, 0.3],
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                  delay: 1,
+                }}
+                style={{ width: '65%', height: '65%' }}
+              />
+
+              {/* Center icon that rotates */}
+              <motion.div
+                className="relative z-10 flex size-20 items-center justify-center rounded-full bg-white shadow-lg"
+                animate={{ rotate: 360 }}
+                transition={{
+                  duration: 20,
+                  repeat: Infinity,
+                  ease: 'linear',
+                }}
+              >
+                <Search className="size-10 text-blue-500" />
+              </motion.div>
+
+              {/* Orbiting elements */}
+              <motion.div
+                className="absolute"
+                animate={{
+                  rotate: 360,
+                }}
+                transition={{
+                  duration: 15,
+                  repeat: Infinity,
+                  ease: 'linear',
+                }}
+              >
+                <motion.div
+                  className="relative -left-32 flex size-12 items-center justify-center rounded-full bg-white shadow-md"
+                >
+                  <Database className="size-6 text-blue-400" />
+                </motion.div>
+              </motion.div>
+
+              <motion.div
+                className="absolute"
+                animate={{
+                  rotate: -360,
+                }}
+                transition={{
+                  duration: 18,
+                  repeat: Infinity,
+                  ease: 'linear',
+                  delay: 1,
+                }}
+              >
+                <motion.div
+                  className="relative -top-28 flex size-12 items-center justify-center rounded-full bg-white shadow-md"
+                >
+                  <Mail className="size-6 text-green-500" />
+                </motion.div>
+              </motion.div>
+
+              <motion.div
+                className="absolute"
+                animate={{
+                  rotate: 360,
+                }}
+                transition={{
+                  duration: 12,
+                  repeat: Infinity,
+                  ease: 'linear',
+                  delay: 2,
+                }}
+              >
+                <motion.div
+                  className="relative right-24 top-24 flex size-12 items-center justify-center rounded-full bg-white shadow-md"
+                >
+                  <CheckCircle className="size-6 text-green-500" />
+                </motion.div>
+              </motion.div>
+            </div>
+
+            <div className="w-full text-center">
+              <motion.div
+                className="mx-auto mb-3 h-2 w-48 overflow-hidden rounded-full bg-gray-200"
+              >
+                <motion.div
+                  className="h-full bg-blue-500"
+                  initial={{ width: '0%' }}
+                  animate={{ width: '100%' }}
+                  transition={{
+                    duration: 8,
+                    ease: 'easeInOut',
+                    repeat: Infinity,
+                  }}
+                />
+              </motion.div>
+
+              <p className="mb-4 text-xs text-gray-500">
+                Our AI is analyzing data points across multiple sources to find your perfect audience match
+              </p>
+
+              <Button
+                onClick={() => {
+                  setShowSuccess(false);
+                  setShowQueryForm(true);
+                  setQueryText('');
+                }}
+                variant="outline"
+                size="sm"
+              >
+                Start a New Query
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Otherwise show the query form
   return (
-    <div className="container mx-auto flex min-h-screen flex-col p-4">
-      <div className="mb-8 flex flex-col items-center justify-center">
-        <div className="mb-4 flex justify-center">
-          <Link href={`/${locale}`}>
-            <Image
-              src="/blugoatLogo.png"
-              alt="Bluegoat Logo"
-              width={120}
-              height={40}
-              className="mb-2"
-            />
-          </Link>
+    <>
+      <DashboardHeader
+        locale={locale}
+        user={user}
+        signOut={signOut}
+        router={router}
+      />
+      <div className="container  flex min-h-[calc(100vh-64px)] flex-col p-4">
+        <div className=" flex flex-col items-center justify-center">
+          <div className=" flex justify-center">
+            <Link href={`/${locale}`}>
+              <Image
+                src="/blugoatLogo.png"
+                alt="Bluegoat Logo"
+                width={100}
+                height={40}
+                className="mb-2"
+              />
+            </Link>
+          </div>
+          <h1 className="text-center text-2xl font-bold text-gray-900 md:text-3xl">
+            Find Your Perfect Audience
+          </h1>
+          <p className="mt-2 max-w-2xl text-center text-gray-600">
+            Describe the audience you're looking for and our AI will find the right people for your campaign
+          </p>
+
+          {/* New info alert about query limits */}
+          <Alert className="mt-4 max-w-2xl border-blue-100 bg-blue-50">
+            <Info className="size-4 text-blue-600" />
+            <AlertDescription className="text-sm text-blue-800">
+              <span className="font-medium">Daily Query Limit:</span>
+              {' '}
+              You have 3 audience queries available per day.
+              Once processed, a sample of 50 your matched data will be sent to your registered email within 2-4 hours.
+              You can purchase the full dataset if the sample meets your requirements.
+            </AlertDescription>
+          </Alert>
         </div>
-        <h1 className="text-center text-2xl font-bold text-gray-900 md:text-3xl">
-          Find Your Perfect Audience
-        </h1>
-        <p className="mt-2 max-w-2xl text-center text-gray-600">
-          Describe the audience you're looking for and our AI will find the right people for your campaign
-        </p>
 
-        {/* New info alert about query limits */}
-        <Alert className="mt-4 max-w-2xl border-blue-100 bg-blue-50">
-          <Info className="size-4 text-blue-600" />
-          <AlertDescription className="text-sm text-blue-800">
-            <span className="font-medium">Daily Query Limit:</span>
-            {' '}
-            You have 3 audience queries available per day.
-            Once processed, a sample of 50 your matched data will be sent to your registered email within 2-4 hours.
-            You can purchase the full dataset if the sample meets your requirements.
-          </AlertDescription>
-        </Alert>
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card className="mx-auto max-w-3xl">
-          <CardHeader>
-            <div className="flex items-center space-x-2">
-              <Sparkles className="size-5 text-blue-500" />
-              <CardTitle>Audience Query</CardTitle>
-            </div>
-            <CardDescription>
-              Be specific about location, industry, job titles or other criteria
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent>
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-6">
-                <div>
-                  <label htmlFor="query" className="mb-2 block font-medium">
-                    Describe your target audience
-                  </label>
-                  <Textarea
-                    id="query"
-                    placeholder="Example: Financial advisors in Mumbai with 5+ years experience"
-                    className="min-h-[120px]"
-                    value={queryText}
-                    onChange={e => setQueryText(e.target.value)}
-                    required
-                  />
-                </div>
-
-                {/* Dropdown for audience quantity selection */}
-                <div>
-                  <Label htmlFor="quantity" className="mb-2 block font-medium">
-                    How many contacts do you need?
-                  </Label>
-                  <Select
-                    value={quantity}
-                    onValueChange={setQuantity}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select the number of contacts" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {quantityOptions.map(option => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <div className="flex w-full items-center justify-between">
-                            <span>{option.label}</span>
-                            <span className="ml-4 font-medium text-blue-700">
-                              ₹
-                              {option.minCost.toLocaleString()}
-                              {' '}
-                              - ₹
-                              {option.maxCost.toLocaleString()}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="mt-2 text-sm text-gray-500">
-                    Pricing: ₹2-5 per contact depending on complexity and specificity.
-                  </p>
-                </div>
-
-                <div>
-                  <p className="mb-2 font-medium">Try one of these examples:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {exampleQueries.map((example, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => handleExampleClick(example)}
-                        className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm text-blue-700 hover:bg-blue-100"
-                      >
-                        {example}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card className="mx-auto max-w-3xl">
+            <CardHeader>
+              <div className="flex items-center space-x-2">
+                <Sparkles className="size-5 text-blue-500" />
+                <CardTitle>Audience Query</CardTitle>
               </div>
-            </form>
-          </CardContent>
+              <CardDescription>
+                Be specific about location, industry, job titles or other criteria
+              </CardDescription>
+            </CardHeader>
 
-          <CardFooter className="flex justify-between border-t bg-gray-50 px-6 py-4">
-            {/* Only show estimated cost if a quantity is selected */}
-            {quantity
-              ? (
-                  <div className="text-sm font-medium text-gray-700">
-                    Estimated cost: ₹
-                    {costRange.min.toLocaleString()}
-                    {' '}
-                    - ₹
-                    {costRange.max.toLocaleString()}
+            <CardContent>
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-6">
+                  <div>
+                    <label htmlFor="query" className="mb-2 block font-medium">
+                      Describe your target audience
+                    </label>
+                    <Textarea
+                      id="query"
+                      placeholder="Example: Financial advisors in Mumbai with 5+ years experience"
+                      className="min-h-[120px]"
+                      value={queryText}
+                      onChange={e => setQueryText(e.target.value)}
+                      required
+                    />
                   </div>
-                )
-              : (
-                  <div className="text-sm text-gray-500">
-                    Select a quantity to see estimated cost
-                  </div>
-                )}
 
-            <Button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={isSubmitting || !queryText.trim() || !quantity}
-              className="bg-blue-600 text-white hover:bg-blue-700"
-            >
-              {isSubmitting
+                  <div>
+                    <p className="mb-2 font-medium">Try one of these examples:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {exampleQueries.map((example, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => handleExampleClick(example)}
+                          className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm text-blue-700 hover:bg-blue-100"
+                        >
+                          {example}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="quantity" className="mb-2 block font-medium">
+                      How many contacts do you need?
+                    </Label>
+                    <Select
+                      value={quantity}
+                      onValueChange={setQuantity}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select the number of contacts" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {quantityOptions.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="mt-2 text-sm text-gray-500">
+                      Pricing: ₹2-5 per contact depending on complexity and specificity.
+                    </p>
+                  </div>
+                </div>
+              </form>
+            </CardContent>
+
+            <CardFooter className="flex justify-between border-t bg-gray-50 px-6 py-4">
+              {/* Only show estimated cost if a quantity is selected */}
+              {quantity
                 ? (
-                    <>
-                      <span className="mr-2 size-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
-                      Processing...
-                    </>
+                    <div className="text-sm font-medium text-gray-700">
+                      Estimated cost: ₹
+                      {costRange.min.toLocaleString()}
+                      {' '}
+                      - ₹
+                      {costRange.max.toLocaleString()}
+                    </div>
                   )
                 : (
-                    <>
-                      Find Audience
-                      <ArrowRight className="ml-2 size-4" />
-                    </>
+                    <div className="text-sm text-gray-500">
+                      Select a quantity to see estimated cost
+                    </div>
                   )}
-            </Button>
-          </CardFooter>
-        </Card>
-      </motion.div>
-    </div>
+
+              <Button
+                type="submit"
+                onClick={handleSubmit}
+                disabled={isSubmitting || !queryText.trim() || !quantity}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {isSubmitting
+                  ? (
+                      <>
+                        <span className="mr-2 size-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                        Processing...
+                      </>
+                    )
+                  : (
+                      <>
+                        Find Audience
+                        <ArrowRight className="ml-2 size-4" />
+                      </>
+                    )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </motion.div>
+      </div>
+    </>
   );
 }
