@@ -1,15 +1,16 @@
+import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import nodemailer from 'nodemailer';
 
 import { supabase } from '@/lib/supabase';
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    // Get request data
-    const data = await request.json();
-    const { queryPrompt, quantity, email, phoneNumber, userId } = data;
+    const data = await req.json();
+    const { queryPrompt, quantity, email: userEmail, phoneNumber, userId } = data;
 
     // Validate required fields
-    if (!queryPrompt || !quantity || !email) {
+    if (!queryPrompt || !quantity || !userEmail) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 },
@@ -22,7 +23,7 @@ export async function POST(request: Request) {
       .insert([
         {
           clerk_user_id: userId || 'anonymous',
-          email_id: email,
+          email_id: userEmail,
           query_prompt: queryPrompt,
           quantity: Number.parseInt(quantity, 10),
           phone_number: phoneNumber || null,
@@ -39,6 +40,15 @@ export async function POST(request: Request) {
       );
     }
 
+    // Send notification to admin emails
+    await sendAdminNotification({
+      queryPrompt,
+      quantity,
+      userEmail,
+      userId,
+      timestamp: new Date().toISOString(),
+    });
+
     return NextResponse.json({
       success: true,
       transactionId: insertData?.[0]?.id,
@@ -47,8 +57,51 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error processing query:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to process query' },
       { status: 500 },
     );
   }
+}
+
+async function sendAdminNotification(queryData: {
+  queryPrompt: string;
+  quantity: string;
+  userEmail: string;
+  userId: string;
+  timestamp: string;
+}) {
+  // Replace hardcoded emails with environment variable
+  const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAIL_RECIPIENTS?.split(',') || ['blugoat2025@gmail.com'];
+
+  // Configure email transport
+  const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
+
+  // Format the notification email
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: adminEmails.join(','),
+    subject: 'A user has requested for audience query',
+    html: `
+      <h2>New Audience Query Request</h2>
+      <p><strong>A user has requested for audience query</strong></p>
+      <p><strong>Query:</strong> ${queryData.queryPrompt}</p>
+      <p><strong>Quantity:</strong> ${queryData.quantity} contacts</p>
+      <p><strong>User Email:</strong> ${queryData.userEmail}</p>
+      <p><strong>User ID:</strong> ${queryData.userId}</p>
+      <p><strong>Time:</strong> ${new Date(queryData.timestamp).toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        dateStyle: 'long',
+        timeStyle: 'long',
+      })}</p>
+    `,
+  };
+
+  // Send the email
+  await transporter.sendMail(mailOptions);
 }
