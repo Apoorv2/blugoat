@@ -22,6 +22,7 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
   const t = useTranslations('LeadQuery');
   const router = useRouter();
   const [initialData, setInitialData] = useState<any>(null);
+  const [submitSuccessful, setSubmitSuccessful] = useState(false);
 
   // Load any existing preferences from localStorage
   useEffect(() => {
@@ -40,8 +41,12 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
     // Save preferences to localStorage
     localStorage.setItem('onboarding-data', JSON.stringify(data));
 
-    // Redirect back to dashboard with updated preferences
-    router.push(`/${params.locale}/dashboard`);
+    // Stay on the same page instead of redirecting
+    // Optionally show a success message instead
+    // For example:
+    setSubmitSuccessful(true);
+    // Or if you need to redirect somewhere else:
+    // router.push(`/${params.locale}/lead-query-results`);
   };
 
   const handleCancel = () => {
