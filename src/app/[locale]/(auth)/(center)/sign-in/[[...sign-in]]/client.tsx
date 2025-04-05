@@ -9,7 +9,7 @@ export function SignInClient({ locale }: { locale: string }) {
         path="/sign-in"
         routing="path"
         signUpUrl={`/${locale}/sign-up`}
-        redirectUrl={`/${locale}/lead-query`}
+        redirectUrl={`/${locale}/audience-query`}
       />
     </div>
   );

@@ -25,7 +25,7 @@ const isProtectedRoute = createRouteMatcher([
 const onboardingWhitelist = [
   'onboarding/credits',
   'onboarding/organization-selection',
-  'lead-query',
+  'audience-query',
 ];
 
 export default authMiddleware({
@@ -39,8 +39,8 @@ export default authMiddleware({
     '/:locale/onboarding/credits(.*)',
     '/onboarding/organization-selection(.*)',
     '/:locale/onboarding/organization-selection(.*)',
-    '/lead-query(.*)',
-    '/:locale/lead-query(.*)',
+    '/audience-query(.*)',
+    '/:locale/audience-query(.*)',
     '/api/create-payment-intent',
     '/api/test',
     '/api/(.*)',
@@ -58,7 +58,7 @@ export default authMiddleware({
       if (auth.userId) {
         const locale = req.nextUrl.pathname.split('/')[1];
         const formattedLocale = locale && AllLocales.includes(locale) ? locale : 'en';
-        return NextResponse.redirect(new URL(`/${formattedLocale}/lead-query`, req.url));
+        return NextResponse.redirect(new URL(`/${formattedLocale}/audience-query`, req.url));
       }
     }
 
@@ -108,7 +108,7 @@ export default authMiddleware({
     }
 
     // Add a check for pages that should have a locale
-    const needsLocale = req.nextUrl.pathname.match(/^\/(onboarding|lead-query|dashboard)/);
+    const needsLocale = req.nextUrl.pathname.match(/^\/(onboarding|audience-query|dashboard)/);
     if (needsLocale && !req.nextUrl.pathname.match(/^\/[a-z]{2}[/-]/)) {
       // Add default locale 'en'
       const newUrl = new URL(`/en${req.nextUrl.pathname}${req.nextUrl.search}`, req.url);
