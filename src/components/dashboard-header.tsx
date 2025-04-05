@@ -77,7 +77,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
           <nav className="hidden md:flex">
             <ul className="flex space-x-4">
               <li>
-                <Link href={`/${locale}/lead-query`} className="px-3 py-2 text-sm font-medium text-blue-600">
+                <Link href={`/${locale}/audience-query`} className="px-3 py-2 text-sm font-medium text-blue-600">
                   Find Audience
                 </Link>
               </li>
@@ -123,7 +123,7 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             </SheetTrigger>
             <SheetContent side="right">
               <nav className="grid gap-6 text-lg font-medium">
-                <Link href={`/${locale}/lead-query`} className="hover:text-blue-600">
+                <Link href={`/${locale}/audience-query`} className="hover:text-blue-600">
                   Find Audience
                 </Link>
                 <Link href={`/${locale}/support`} className="hover:text-blue-600">

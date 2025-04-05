@@ -3,7 +3,7 @@
 'use client';
 
 import { useAuth, useUser } from '@clerk/nextjs';
-import { Mail, Phone } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -51,7 +51,7 @@ export default function SupportPage({ params }: { params: { locale: string } }) 
         <div className="mx-auto w-full max-w-3xl">
           <h1 className="mb-6 text-center text-3xl font-bold">Support</h1>
 
-          <div className="mb-8 grid gap-6 md:grid-cols-2">
+          <div className="mb-8 grid gap-6 md:grid-cols-1">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -64,52 +64,13 @@ export default function SupportPage({ params }: { params: { locale: string } }) 
               </CardHeader>
               <CardContent>
                 <p className="text-lg font-medium">
-                  <a href="mailto:support@blugoat.com" className="text-blue-600 hover:underline">
+                  <a href="mailto:blugoat2025@gmail.com" className="text-blue-600 hover:underline">
                     blugoat2025@gmail.com
                   </a>
                 </p>
                 <p className="mt-2 text-sm text-gray-500">
                   We usually respond within 24 hours
                 </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Phone className="mr-2 size-5" />
-                  Phone Support
-                </CardTitle>
-                <CardDescription>
-                  Call us directly for urgent matters
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="font-medium">
-                    <a href="tel:+919876543210" className="text-blue-600 hover:underline">
-                      +91 9724160013
-                    </a>
-                  </p>
-                  <p className="font-medium">
-                    <a href="tel:+911234567890" className="text-blue-600 hover:underline">
-                      +91 9619548655
-                    </a>
-                  </p>
-                  <p className="font-medium">
-                    <a href="tel:+911234567890" className="text-blue-600 hover:underline">
-                      +91 7380610101
-                    </a>
-                  </p>
-                  <p className="font-medium">
-                    <a href="tel:+911234567890" className="text-blue-600 hover:underline">
-                      +91 9453134239
-                    </a>
-                  </p>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Available all days, 9:00 AM - 11:59 PM IST
-                  </p>
-                </div>
               </CardContent>
             </Card>
           </div>

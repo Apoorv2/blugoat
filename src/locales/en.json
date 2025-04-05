@@ -1,7 +1,7 @@
 {
   "Index": {
-    "meta_title": "bluGoat - AI-Powered Lead Generation Platform to Find Your Perfect Prospects",
-    "meta_description": "bluGoat helps businesses discover qualified leads with precision targeting and AI-enriched data. Specify your criteria and access actionable business intelligence instantly."
+    "meta_title": "bluGoat - AI-Powered custome Audience  Generation Platform to Find Your Perfect Prospects",
+    "meta_description": "bluGoat helps businesses discover qualified leads with precision targeting and AI-enriched audience member. Specify your criteria and access actionable business intelligence instantly."
   },
   "Navbar": {
     "sign_in": "Sign In",
@@ -45,7 +45,7 @@
   },
   "Pricing": {
     "section_subtitle": "Pricing",
-    "section_title": "Choose the Perfect Plan for Your Lead Generation Needs",
+    "section_title": "Choose the Perfect Plan for Your audience Generation Needs",
     "section_description": "Access quality prospect data with flexible plans designed to scale with your business - from startups to enterprise organizations.",
     "button_text": "Get Started"
   },
@@ -66,20 +66,20 @@
     "next_renew_date": "Your subscription renews on {date}"
   },
   "FAQ": {
-    "question1": "How accurate is your lead data?",
+    "question1": "How accurate is your custom audience data?",
     "answer1": "Our lead data boasts over 95% accuracy, thanks to our proprietary AI verification system and regular database updates. We continuously verify contact information and company details to ensure you always work with reliable, up-to-date information.",
 
-    "question2": "How many leads can I access per month?",
-    "answer2": "Our platform operates on a flexible, prepaid credit system that gives you complete control over your lead acquisition. Here's how it works:\n\n1. **Credit Purchases**: You can purchase lead credits in advance, which allows you to request leads as your business needs evolve. There are no fixed monthly limits – you decide how many leads you want to access based on the credits you buy.\n\n2. **Flexible Requesting**: Once you've purchased credits, you can request leads at your own pace. Each lead costs a specific number of credits, and you can spread out your lead requests throughout the month or use them quickly, depending on your sales and marketing strategy.\n\n3. **Credit Rollover**: Your purchased credits do not expire, giving you the flexibility to use them when it makes the most sense for your business.\n\n4. **Enterprise Plans**: We do offer enterprise-level plans which are tailored to fit your company's needs.\n\n**Example**: If you buy a package of 100 credits, you might use 10 credits to request 10 high-quality leads this month, and save the remaining credits for future use.",
+    "question2": "How does the audience query pricing work?",
+    "answer2": "Our platform operates on a simple, transparent pay-per-audience model with no hidden fees:\n\n1. **Direct Pricing**: We charge as little as ₹2 per contact in your custom audience, with the final price depending on the specificity and complexity of your query.\n\n2. **No Subscription Required**: There are no monthly fees or minimum commitments. You only pay for the audiences you request.\n\n3. **Quality Guarantee**: You'll receive a sample of your matched data within 2-4 hours of your request. You only purchase the full dataset if it meets your requirements.\n\n4. **Volume Discounts**: The more contacts you need, the more cost-effective our service becomes. Bulk orders receive preferential pricing.\n\n5. **Enterprise Solutions**: We offer custom enterprise plans for companies with high-volume or specialized needs.\n\n**Example**: If you request 5,000 contacts of \"Software Engineers in Bangalore with 5+ years experience\", your cost would range from ₹10,000 to ₹25,000 depending on the complexity of the criteria.",
 
     "question3": "What industries do you cover?",
-    "answer3": "Our platform covers leads across all major industries including technology, healthcare, finance, education, retail, manufacturing, and many more. Our extensive database allows you to filter prospects by specific industry classifications to find exactly what you need.",
+    "answer3": "Our platform covers audience across all major industries including technology, healthcare, finance, education, retail, manufacturing, and many more. Our extensive database allows you to filter prospects by specific industry classifications to find exactly what you need.",
 
     "question4": "Can I integrate your data with my CRM?",
     "answer4": "You will be able to soon. We're working on offering you seamless integration with popular CRM platforms, including Salesforce, HubSpot, Zoho, and many others. Our API will allow for custom integrations with virtually any system your team uses.",
 
     "question5": "How is your pricing structured?",
-    "answer5": "Our pricing is based on the number of leads you need and additional enrichment features. We offer monthly and annual subscription plans with significant discounts for annual commitments. Custom enterprise pricing is available for high-volume requirements."
+    "answer5": "Our pricing is based on the number of audience memeber you need and additional enrichment features. We offer monthly and annual subscription plans with significant discounts for annual commitments. Custom enterprise pricing is available for high-volume requirements."
   },
   "CTA": {
     "title": "Ready to supercharge your prospecting with bluGoat?",

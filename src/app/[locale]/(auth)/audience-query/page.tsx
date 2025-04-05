@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+/* eslint-disable no-alert */
 /* eslint-disable unused-imports/no-unused-imports */
 /* eslint-disable react/no-array-index-key */
 /* eslint-disable unused-imports/no-unused-vars */
@@ -10,7 +12,7 @@ import { ArrowRight, CheckCircle, Database, Info, Mail, Search, Sparkles } from 
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { DashboardHeader } from '@/components/dashboard-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -38,6 +40,8 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
   const [showQueryForm, setShowQueryForm] = useState(true);
   const [quantity, setQuantity] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [queriesRemaining, setQueriesRemaining] = useState<number | null>(null);
+  const [isOverLimit, setIsOverLimit] = useState(false);
 
   // Get user information from Clerk
   const { isLoaded, isSignedIn, signOut } = useAuth();
@@ -70,8 +74,54 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
     setQueryText(example);
   };
 
+  useEffect(() => {
+    // In a real app, this would come from an API call to check the user's limit
+    const today = new Date().toISOString().split('T')[0];
+    const storedDate = localStorage.getItem('last_query_date');
+    const queryCount = storedDate === today
+      ? Number.parseInt(localStorage.getItem('daily_query_count') || '0', 10)
+      : 0;
+
+    console.log('Current query count:', queryCount);
+
+    // If it's a new day, reset the counter
+    if (storedDate !== today) {
+      localStorage.setItem('last_query_date', today);
+      localStorage.setItem('daily_query_count', '0');
+    }
+
+    const remaining = Math.max(0, 3 - queryCount);
+    console.log('Queries remaining:', remaining);
+
+    setQueriesRemaining(remaining);
+    setIsOverLimit(remaining <= 0);
+    console.log('Is over limit:', remaining <= 0);
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Force check limit status again
+    const today = new Date().toISOString().split('T')[0];
+    const storedDate = localStorage.getItem('last_query_date');
+    const queryCount = storedDate === today
+      ? Number.parseInt(localStorage.getItem('daily_query_count') || '0', 10)
+      : 0;
+    const remaining = Math.max(0, 3 - queryCount);
+
+    // Set states directly before checking
+    setQueriesRemaining(remaining);
+    const currentlyOverLimit = remaining <= 0;
+    setIsOverLimit(currentlyOverLimit);
+
+    console.log('Submit attempted. Over limit?', currentlyOverLimit);
+
+    // Exit early if over limit
+    if (currentlyOverLimit) {
+      alert('You have reached your daily query limit. Please try again tomorrow.');
+      return;
+    }
+
     if (!queryText.trim() || !quantity) {
       return;
     }
@@ -85,6 +135,16 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
       const userEmail = user?.primaryEmailAddress?.emailAddress || 'anonymous@example.com';
       const userPhone = user?.primaryPhoneNumber?.phoneNumber;
       const userId = user?.id;
+
+      // Increment query count
+      const newCount = queryCount + 1;
+      localStorage.setItem('daily_query_count', newCount.toString());
+      localStorage.setItem('last_query_date', today);
+
+      const newRemaining = Math.max(0, 3 - newCount);
+      setQueriesRemaining(newRemaining);
+      setIsOverLimit(newRemaining <= 0);
+      console.log('New query count:', newCount, 'Remaining:', newRemaining);
 
       // Call our API to save the query to Supabase
       const response = await fetch('/api/query', {
@@ -356,14 +416,26 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
           </p>
 
           {/* New info alert about query limits */}
-          <Alert className="mt-4 max-w-2xl border-blue-100 bg-blue-50">
+          <Alert className="mb-3 mt-4 max-w-2xl border-blue-100 bg-blue-50">
             <Info className="size-4 text-blue-600" />
             <AlertDescription className="text-sm text-blue-800">
               <span className="font-medium">Daily Query Limit:</span>
               {' '}
-              You have 3 audience queries available per day.
-              Once processed, a sample of 50 your matched data will be sent to your registered email within 2-4 hours.
-              You can purchase the full dataset if the sample meets your requirements.
+              {queriesRemaining !== null && (
+                <span>
+                  You have
+                  {' '}
+                  <strong>
+                    {queriesRemaining}
+                    {' '}
+                    of 3
+                  </strong>
+                  {' '}
+                  audience queries remaining today.
+                </span>
+              )}
+              {' '}
+              A sample of 50 matched contacts will be sent to your email within 2-4 hours. You can purchase the full dataset if the sample meets your requirements.
             </AlertDescription>
           </Alert>
         </div>
@@ -385,8 +457,28 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
             </CardHeader>
 
             <CardContent>
+              {isOverLimit && (
+                <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-center">
+                  <div className="mb-2 flex items-center justify-center">
+                    <Info className="mr-2 size-5 text-yellow-500" />
+                    <h3 className="text-lg font-medium text-yellow-800">Daily Query Limit Reached</h3>
+                  </div>
+                  <p className="text-yellow-700">
+                    You've used all 3 of your audience queries for today. Your limit will reset at midnight (IST).
+                  </p>
+                  <div className="mt-4 flex justify-center">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => router.push(`/${locale}/support`)}
+                    >
+                      Contact Support
+                    </Button>
+                  </div>
+                </div>
+              )}
               <form onSubmit={handleSubmit}>
-                <div className="space-y-6">
+                <div className="space-y-3">
                   <div>
                     <label htmlFor="query" className="mb-2 block font-medium">
                       Describe your target audience
@@ -465,7 +557,7 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
               <Button
                 type="submit"
                 onClick={handleSubmit}
-                disabled={isSubmitting || !queryText.trim() || !quantity}
+                disabled={isSubmitting || !queryText.trim() || !quantity || isOverLimit}
                 className="bg-blue-600 text-white hover:bg-blue-700"
               >
                 {isSubmitting
@@ -475,12 +567,14 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
                         Processing...
                       </>
                     )
-                  : (
-                      <>
-                        Find Audience
-                        <ArrowRight className="ml-2 size-4" />
-                      </>
-                    )}
+                  : isOverLimit
+                    ? 'Daily Limit Reached'
+                    : (
+                        <>
+                          Find Audience
+                          <ArrowRight className="ml-2 size-4" />
+                        </>
+                      )}
               </Button>
             </CardFooter>
           </Card>
