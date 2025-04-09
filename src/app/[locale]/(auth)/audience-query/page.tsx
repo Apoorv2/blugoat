@@ -56,9 +56,9 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
 
   // Audience quantity options with associated cost ranges
   const quantityOptions = [
-    { value: '5000', label: '5,000 contacts', minCost: 10000, maxCost: 25000 },
-    { value: '10000', label: '10,000 contacts', minCost: 20000, maxCost: 50000 },
-    { value: '20000', label: '20,000 contacts', minCost: 40000, maxCost: 100000 },
+    { value: '5000', label: '5,000 Audience Range', minCost: 10000, maxCost: 25000 },
+    { value: '10000', label: '10,000 Audience Range', minCost: 20000, maxCost: 50000 },
+    { value: '20000', label: '20,000 Audience Range', minCost: 40000, maxCost: 100000 },
   ];
 
   // Calculate the current cost range based on selected quantity
@@ -218,7 +218,7 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
                 {' '}
                 {Number.parseInt(quantity).toLocaleString()}
                 {' '}
-                contacts based on your criteria.
+                audience members based on your criteria.
                 We'll email your tailored results within 2-4 hours.
               </p>
 
@@ -435,7 +435,7 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
                 </span>
               )}
               {' '}
-              A sample of 50 matched contacts will be sent to your email within 2-4 hours. You can purchase the full dataset if the sample meets your requirements.
+              A sample of 50 matched audience range will be sent to your email within 2-4 hours. You can purchase the full dataset if the sample meets your requirements.
             </AlertDescription>
           </Alert>
         </div>
@@ -511,14 +511,14 @@ export default function LeadQueryPage({ params }: { params: { locale: string } }
 
                   <div>
                     <Label htmlFor="quantity" className="mb-2 block font-medium">
-                      How many contacts do you need?
+                      How many audience range do you need?
                     </Label>
                     <Select
                       value={quantity}
                       onValueChange={setQuantity}
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select the number of contacts" />
+                        <SelectValue placeholder="Select the number of Audience Range" />
                       </SelectTrigger>
                       <SelectContent>
                         {quantityOptions.map(option => (
